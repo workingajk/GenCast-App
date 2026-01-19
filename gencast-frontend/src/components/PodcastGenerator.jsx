@@ -5,6 +5,7 @@ const PodcastGenerator = () => {
     const [topic, setTopic] = useState('');
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState(null);
+    const [scriptText, setScriptText] = useState('');
     const [scriptId, setScriptId] = useState(null);
     const [error, setError] = useState(null);
 
@@ -15,6 +16,7 @@ const PodcastGenerator = () => {
         try {
             const response = await axios.post('http://localhost:8000/api/podcasts/create/', { topic });
             setScript(response.data.script);
+            setScriptText(JSON.stringify(response.data.script, null, 2));
             setScriptId(response.data.script_id);
         } catch (err) {
             setError(err.response?.data?.error || 'An error occurred');
@@ -27,6 +29,24 @@ const PodcastGenerator = () => {
         // Placeholder for next step
         alert('Generate Audio clicked! (Not implemented yet)');
     };
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            try {
+                if (scriptText) {
+                    const parsedScript = JSON.parse(scriptText);
+                    setScript(parsedScript);
+                    setError(null);
+                }
+            } catch (e) {
+                setError("Invalid JSON format.");
+            }
+        }, 500);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [scriptText]);
 
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl">
@@ -72,23 +92,8 @@ const PodcastGenerator = () => {
                     <h2 className="text-2xl font-semibold mb-4 text-gray-800">Generated Script</h2>
                     <textarea
                         className="w-full h-96 p-4 border rounded-lg font-mono text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={JSON.stringify(script, null, 2)}
-                        onChange={(e) => {
-                            try {
-                                setScript(JSON.parse(e.target.value));
-                            } catch (err) {
-                                // Allow editing even if invalid JSON temporarily, but maybe just update text state if we want full editing.
-                                // For now, let's just assume they edit valid JSON or we might need a better editor.
-                                // Actually, let's just keep it simple: display as text, parse on save/generate audio.
-                                // But here I am setting state directly.
-                                // Let's just update the text representation in a local state if we want to support editing, 
-                                // but the prompt asked for a text area that allows user to edit.
-                                // I'll stick to this for now, but it might be jumpy if I parse on every change. 
-                                // Better to store as string in the textarea and parse only when needed.
-                            }
-                        }}
-                        // Actually, let's treat it as a string for editing purposes to avoid JSON parse errors blocking input
-                        defaultValue={JSON.stringify(script, null, 2)}
+                        value={scriptText}
+                        onChange={(e) => setScriptText(e.target.value)}
                     />
                     <div className="mt-4 flex justify-end">
                         <button
