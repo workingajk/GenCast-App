@@ -48,7 +48,7 @@ class PodcastCreateView(views.APIView):
             raise Exception("GEMINI_API_KEY not configured")
         
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         prompt = f"""
         You are a professional podcast script writer.
