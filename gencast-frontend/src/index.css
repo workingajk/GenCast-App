@@ -1,12 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import "tailwindcss";
 
+
+:root {
+    --bg-main: #ffffff;
+    --bg-surface: #f8fafc;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --primary-color: #00f0ff;
+    --primary-hover: #00c0cc;
+}
+
+.dark {
+    --bg-main: #0a0c0e;
+    --bg-surface: #13161c;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.05);
+}
+
 @theme {
-    --color-bg-deep: #0a0c0e;
-    --color-bg-surface: #13161c;
-    --color-bg-input: #1c232c;
-    --color-primary: #00f0ff;
-    --color-primary-hover: #00c0cc;
+    --color-bg-main: var(--bg-main);
+    --color-bg-surface: var(--bg-surface);
+    --color-text-main: var(--text-main);
+    --color-text-muted: var(--text-muted);
+    --color-border-main: var(--border-color);
+    --color-primary: var(--primary-color);
+    --color-primary-hover: var(--primary-hover);
 
     --font-display: "Inter", sans-serif;
     --font-heading: "Outfit", sans-serif;
 }
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
+/* Fallback for potential material-icons usage */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Material Symbols Adjustments */
+.fill-0 { font-variation-settings: 'FILL' 0; }
+.fill-1 { font-variation-settings: 'FILL' 1; }
+.wght-100 { font-variation-settings: 'wght' 100; }
+.wght-200 { font-variation-settings: 'wght' 200; }
+.wght-300 { font-variation-settings: 'wght' 300; }
+.wght-400 { font-variation-settings: 'wght' 400; }
+.wght-500 { font-variation-settings: 'wght' 500; }
+.wght-600 { font-variation-settings: 'wght' 600; }
+.wght-700 { font-variation-settings: 'wght' 700; }
+.opsz-20 { font-variation-settings: 'opsz' 20; }
+.opsz-24 { font-variation-settings: 'opsz' 24; }
+.opsz-40 { font-variation-settings: 'opsz' 40; }
+.opsz-48 { font-variation-settings: 'opsz' 48; }

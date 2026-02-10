@@ -5,11 +5,11 @@ import Header from './Header';
 
 const Layout = () => {
     return (
-        <div className="bg-bg-deep text-gray-100 font-display overflow-hidden h-screen flex">
+        <div className="flex h-screen bg-bg-main text-text-main transition-colors duration-500 overflow-hidden font-display">
             <Sidebar />
-            <main className="flex-1 flex flex-col relative h-full min-w-0 bg-bg-deep overflow-hidden">
+            <main className="flex-1 relative overflow-y-auto">
                 <Header />
-                <div className="flex-1 flex flex-col items-center justify-center w-full px-6 overflow-y-auto pt-16">
+                <div className="container mx-auto px-6 py-24 min-h-full">
                     <Outlet />
                 </div>
             </main>

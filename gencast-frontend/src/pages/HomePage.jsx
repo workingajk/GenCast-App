@@ -1,82 +1,165 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { StepIndicator } from '../components/StepIndicator';
+import { TopicInput } from '../components/TopicInput';
+import { PlanningView } from '../components/PlanningView';
+import { ScriptEditor } from '../components/ScriptEditor';
+import { AudioPlayer } from '../components/AudioPlayer';
+import { generatePodcastPlan, generatePodcastScript, synthesizeSpeech } from '../services/geminiService';
+import { decodeBase64, decodeAudioData, concatenateAudioBuffers } from '../utils/audioUtils';
+import { SPEAKER_VOICE_MAP } from '../constants';
 
 const HomePage = () => {
-    return (
-        <div className="flex flex-col items-center justify-center max-w-2xl w-full text-center space-y-10 pb-24">
-            <div aria-hidden="true" className="h-16 flex items-end justify-center gap-1.5 opacity-90">
-                <div className="w-1.5 bg-primary rounded-full h-4 opacity-40"></div>
-                <div className="w-1.5 bg-primary rounded-full h-8 opacity-60"></div>
-                <div className="w-1.5 bg-primary rounded-full h-12 opacity-80"></div>
-                <div className="w-1.5 bg-primary rounded-full h-6 opacity-50"></div>
-                <div className="w-1.5 bg-primary rounded-full h-16"></div>
-                <div className="w-1.5 bg-primary rounded-full h-10 opacity-70"></div>
-                <div className="w-1.5 bg-primary rounded-full h-14 opacity-90"></div>
-                <div className="w-1.5 bg-primary rounded-full h-5 opacity-40"></div>
-            </div>
-            <div className="space-y-4">
-                <h2 className="text-5xl md:text-6xl font-heading font-bold text-white tracking-tight leading-tight">Create your <span className="text-primary">Podcast</span></h2>
-                <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">Transform your scripts or topics into high-fidelity AI-powered conversations.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-                <button className="px-5 py-3 rounded-xl border border-white/5 bg-bg-surface hover:bg-bg-input hover:border-primary/40 text-sm text-gray-300 text-left transition-all flex items-center gap-3 group">
-                    <span className="material-symbols-outlined text-primary/60 group-hover:text-primary text-[18px]">science</span>
-                    Quantum Physics 101
-                </button>
-                <button className="px-5 py-3 rounded-xl border border-white/5 bg-bg-surface hover:bg-bg-input hover:border-primary/40 text-sm text-gray-300 text-left transition-all flex items-center gap-3 group">
-                    <span className="material-symbols-outlined text-primary/60 group-hover:text-primary text-[18px]">newspaper</span>
-                    Tech News Roundup
-                </button>
-            </div>
+    // State
+    const [step, setStep] = useState('input');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-            <div className="w-full pt-10 flex flex-col gap-4 relative">
-                <div className="flex justify-center md:justify-start">
-                    <div className="bg-bg-surface p-1 rounded-2xl inline-flex border border-white/10 shadow-xl backdrop-blur-md">
-                        <label className="cursor-pointer relative">
-                            <input className="peer sr-only" name="speakers" type="radio" value="1" />
-                            <div className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 peer-checked:bg-white/10 peer-checked:text-primary transition-all flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[16px]">person</span>
-                                1 Host
-                            </div>
-                        </label>
-                        <label className="cursor-pointer relative">
-                            <input defaultChecked className="peer sr-only" name="speakers" type="radio" value="2" />
-                            <div className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 peer-checked:bg-white/10 peer-checked:text-primary transition-all flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[16px]">group</span>
-                                Duo
-                            </div>
-                        </label>
-                        <label className="cursor-pointer relative">
-                            <input className="peer sr-only" name="speakers" type="radio" value="3" />
-                            <div className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 peer-checked:bg-white/10 peer-checked:text-primary transition-all flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[16px]">groups</span>
-                                Panel (3)
-                            </div>
-                        </label>
+    // Data
+    const [config, setConfig] = useState({ topic: '', speakers: 2 });
+    const [outline, setOutline] = useState(null);
+    const [sources, setSources] = useState([]);
+    const [script, setScript] = useState([]);
+    const [finalAudio, setFinalAudio] = useState(null);
+
+    // Handlers
+    const handleGeneratePlan = async (topic, speakers) => {
+        setLoading(true);
+        setError(null);
+        setConfig({ topic, speakers });
+
+        try {
+            const { outline: plan, sources: refs } = await generatePodcastPlan(topic, speakers);
+            setOutline(plan);
+            setSources(refs);
+            setStep('planning');
+        } catch (e) {
+            console.error(e);
+            setError("Failed to generate plan. Please try again. Ensure API_KEY is set.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGenerateScript = async () => {
+        if (!outline) return;
+        setLoading(true);
+        setError(null);
+
+        try {
+            const generatedScript = await generatePodcastScript(
+                config.topic,
+                outline,
+                config.speakers,
+                sources
+            );
+            setScript(generatedScript);
+            setStep('scripting');
+        } catch (e) {
+            console.error(e);
+            setError("Failed to generate script. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSynthesizeAudio = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const buffers = [];
+
+            // Process sequentially to maintain order and context
+            for (const line of script) {
+                if (!line.text.trim()) continue;
+
+                // Map speaker to voice
+                const voice = SPEAKER_VOICE_MAP[line.speaker] || 'Puck'; // Default to Puck
+
+                const base64Audio = await synthesizeSpeech(line.text, voice);
+                const audioBytes = decodeBase64(base64Audio);
+                // Pass 24000Hz and 1 channel as Gemini 2.5 Flash TTS outputs raw PCM at this rate
+                const audioBuffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
+                buffers.push(audioBuffer);
+            }
+
+            const combinedBuffer = concatenateAudioBuffers(buffers, audioContext);
+            setFinalAudio(combinedBuffer);
+            setStep('audio');
+
+            // Clean up temp context
+            audioContext.close();
+
+        } catch (e) {
+            console.error(e);
+            setError("Failed to synthesize audio. Check API quotas or connection.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const reset = () => {
+        setStep('input');
+        setOutline(null);
+        setScript([]);
+        setFinalAudio(null);
+        setError(null);
+    };
+
+    return (
+        <div className="flex flex-col items-center w-full min-h-screen pb-24 bg-bg-main text-text-main relative overflow-hidden transition-colors duration-500">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,189,199,0.08),transparent_50%)] pointer-events-none"></div>
+            <header className="mb-12 text-center pt-12 relative z-10">
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight font-heading mb-4 neon-text-glow dark:text-white">
+                    Gen<span className="text-primary">Cast</span>
+                </h1>
+                <p className="text-text-muted font-medium max-w-xl mx-auto leading-relaxed">
+                    Research-Based RAG Podcast Generation. Just provide a topic, and we'll handle the rest.
+                </p>
+            </header>
+
+            <StepIndicator currentStep={step} />
+
+            <main className="w-full max-w-6xl px-4">
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-center border border-red-100 max-w-2xl mx-auto">
+                        {error}
                     </div>
-                </div>
-                <div className="relative group rounded-3xl bg-bg-input shadow-glow border border-white/5 transition-all focus-within:border-primary/40 focus-within:bg-[#1c232c]">
-                    <textarea className="w-full bg-transparent text-white placeholder-gray-600 rounded-3xl border-none focus:ring-0 resize-none py-5 pl-6 pr-16 min-h-[110px] text-base leading-relaxed" placeholder="Enter your script, a topic, or paste a link to convert into a podcast..."></textarea>
-                    <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                        <button className="p-2 text-gray-500 hover:text-white transition-colors rounded-xl hover:bg-white/5" title="Attach Source">
-                            <span className="material-symbols-outlined text-[24px]">attachment</span>
-                        </button>
-                        <button className="size-11 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary-hover text-[#0a0c0e] transition-all shadow-lg hover:shadow-primary/25 group/btn">
-                            <span className="material-symbols-outlined text-[24px] font-bold group-hover/btn:scale-110 transition-transform">bolt</span>
-                        </button>
-                    </div>
-                </div>
-                <div className="flex items-center justify-center gap-4">
-                    <p className="text-[10px] text-gray-600 font-medium tracking-wide uppercase">
-                        Tokens: <span className="text-gray-400">120/5000</span>
-                    </p>
-                    <div className="h-1 w-1 rounded-full bg-gray-800"></div>
-                    <p className="text-[10px] text-gray-600 font-medium tracking-wide uppercase">
-                        AI Content Warning: Review before export
-                    </p>
-                </div>
-            </div>
+                )}
+
+                {step === 'input' && (
+                    <TopicInput onGenerate={handleGeneratePlan} isGenerating={loading} />
+                )}
+
+                {step === 'planning' && outline && (
+                    <PlanningView
+                        outline={outline}
+                        sources={sources}
+                        onConfirm={handleGenerateScript}
+                        isGeneratingScript={loading}
+                    />
+                )}
+
+                {step === 'scripting' && (
+                    <ScriptEditor
+                        script={script}
+                        setScript={setScript}
+                        onSynthesize={handleSynthesizeAudio}
+                        isSynthesizing={loading}
+                    />
+                )}
+
+                {step === 'audio' && (
+                    <AudioPlayer
+                        audioBuffer={finalAudio}
+                        onReset={reset}
+                    />
+                )}
+            </main>
         </div>
     );
 };
 
 export default HomePage;
+

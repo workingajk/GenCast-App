@@ -1,68 +1,138 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { clsx } from 'clsx';
 
 const Sidebar = () => {
-    return (
-        <aside className="w-72 h-full bg-bg-sidebar flex flex-col border-r border-white/5 shadow-2xl z-20 relative transition-all duration-300" id="sidebar">
-            <button className="sidebar-toggle-btn absolute top-6 right-[-14px] size-7 bg-bg-surface border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-primary transition-all z-50 shadow-lg" onClick={() => document.getElementById('sidebar').classList.toggle('sidebar-collapsed')}>
-                <span className="material-symbols-outlined text-[18px] sidebar-expanded-icon block">chevron_left</span>
-            </button>
-            <div className="p-6 pb-2">
-                <div className="flex items-center gap-3">
-                    <div className="size-8 min-w-[32px] rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-black">
-                        <span className="material-symbols-outlined text-[20px] font-bold">graphic_eq</span>
-                    </div>
-                    <h1 className="text-xl font-heading font-bold tracking-tight text-white sidebar-full-content">PodAI</h1>
-                </div>
-            </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-6 py-6 flex justify-center">
-                    <button className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-[#0a0c0e] font-bold py-3 px-2 rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.3)] hover:scale-[1.02] active:scale-[0.98] group overflow-hidden">
-                        <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90">add</span>
-                        <span className="sidebar-full-content whitespace-nowrap">New Podcast</span>
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 pb-4">
-                    <h3 className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.1em] mb-4 mt-2 sidebar-full-content">Navigation</h3>
-                    <div className="flex flex-col gap-1.5 mb-6">
-                        <Link to="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-gray-300 hover:text-white">
-                            <span className="material-symbols-outlined text-[20px]">home</span>
-                            <span className="text-sm font-semibold sidebar-full-content">Home</span>
-                        </Link>
-                        <Link to="/editor" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-gray-300 hover:text-white">
-                            <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                            <span className="text-sm font-semibold sidebar-full-content">Editor</span>
-                        </Link>
-                        <Link to="/player" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-gray-300 hover:text-white">
-                            <span className="material-symbols-outlined text-[20px]">play_circle</span>
-                            <span className="text-sm font-semibold sidebar-full-content">Player</span>
-                        </Link>
-                    </div>
+    const location = useLocation();
+    const [isCollapsed, setIsCollapsed] = React.useState(false);
 
-                    <h3 className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.1em] mb-4 mt-2 sidebar-full-content">Recent Generation</h3>
-                    <div className="flex flex-col gap-1.5 items-center">
-                        <a className="w-full flex flex-col gap-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 group transition-all" href="#">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="material-symbols-outlined text-primary text-[20px] sidebar-mini-content hidden">neurology</span>
-                                    <span className="text-sm font-semibold text-white truncate sidebar-full-content w-32">The Future of AI</span>
-                                </div>
-                                <span className="material-symbols-outlined text-primary text-[16px] sidebar-full-content">equalizer</span>
-                            </div>
-                            <span className="text-[11px] text-gray-400 sidebar-full-content">Oct 24 • 12:45 mins</span>
-                        </a>
-                        {/* More items could be mapped here */}
-                    </div>
-                </div>
+    // Mock data for history
+    const historyGroups = [
+        {
+            label: 'Today',
+            items: [
+                { id: 1, title: 'The Future of AI', path: '/player' },
+                { id: 2, title: 'History of Rome', path: '/player' },
+            ]
+        },
+        {
+            label: 'Yesterday',
+            items: [
+                { id: 3, title: 'Quantum Computing 101', path: '/player' },
+            ]
+        },
+        {
+            label: 'Previous 7 Days',
+            items: [
+                { id: 4, title: 'Meditations on First Philosophy', path: '/player' },
+                { id: 5, title: 'Learn Spanish in 30 Days', path: '/player' },
+            ]
+        }
+    ];
+
+    const devItems = [
+        { path: '/editor', label: 'Editor', icon: 'edit_note' },
+        { path: '/player', label: 'Player', icon: 'play_circle' },
+    ];
+
+    return (
+        <aside 
+            className={clsx(
+                "bg-[#000000] flex flex-col h-screen text-[#ECECF1] relative z-20 transition-all duration-300 ease-in-out",
+                isCollapsed ? "w-[80px]" : "w-[260px]"
+            )}
+        >
+            {/* Header / Branding */}
+            <div className={clsx("px-4 py-3 mb-2 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+                 {!isCollapsed && (
+                     <div className="flex items-center gap-2">
+                        <div className="size-8 rounded-sm bg-indigo-500 flex items-center justify-center text-white font-bold text-xs">
+                            GC
+                        </div>
+                        <span className="text-[16px] font-bold text-white tracking-tight">GenCast</span>
+                     </div>
+                 )}
+                 
+                 <button 
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="p-2 hover:bg-[#2A2B32] rounded-md transition-colors text-white/70 hover:text-white"
+                 >
+                    <span className="material-symbols-outlined text-[20px]">
+                        {isCollapsed ? 'dock_to_right' : 'dock_to_left'}
+                    </span>
+                 </button>
             </div>
-            <div className="p-4 border-t border-white/5">
-                <button className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white/5 transition-colors text-left group">
-                    <div className="size-9 min-w-[36px] rounded-full bg-cover bg-center ring-2 ring-white/10 group-hover:ring-primary/50 transition-all" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDoNEyfqmjziEedpVoaqSRsTI-cTj7HVr9IS0NEejeRCu3F_1hNDDA5aIbFftmmYu_D4q8I2UXynCtBEa668gIsGgnQQxIx7uP16SefuJylYZJxVizHHtBlnm4CQPpJI_IqE-rgiTtFMawp9p1bvXxmp-CoP224O2G_kS50hao340mpbtDd3GDEbDke8-wH4ccZdIz2LCnWeD__HBdH-4YRfkHwEKsmgSzVpIv8ekyBpfubOIt5ROPjq7BbR3DuYgXrsRvsVKmQp8QP")' }}></div>
-                    <div className="flex-1 min-w-0 sidebar-full-content">
-                        <p className="text-sm font-semibold text-white truncate">Elena R.</p>
-                        <p className="text-[11px] text-gray-500 font-medium truncate uppercase tracking-wider">Pro Tier</p>
+
+            {/* New Podcast Button */}
+            <div className="px-3 mb-4">
+                <Link 
+                    to="/" 
+                    className={clsx(
+                        "flex items-center gap-2 py-3 rounded-md hover:bg-[#2A2B32] transition-colors border border-white/20 cursor-pointer group",
+                        isCollapsed ? "justify-center px-0" : "px-3"
+                    )}
+                >
+                    <span className="material-symbols-outlined text-[18px] text-white group-hover:text-white transition-colors">add_circle</span>
+                    {!isCollapsed && <span className="text-[14px] flex-1 text-left text-white">New Podcast</span>}
+                </Link>
+            </div>
+
+            {/* History List */}
+            <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                {!isCollapsed && (
+                    <div className="flex flex-col gap-6">
+                        {historyGroups.map((group) => (
+                            <div key={group.label}>
+                                <div className="px-3 text-[12px] font-medium text-[#c5c5d0] mb-2">{group.label}</div>
+                                <div className="flex flex-col">
+                                    {group.items.map((item) => (
+                                        <Link
+                                            key={item.id}
+                                            to={item.path}
+                                            className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] group transition-colors overflow-hidden"
+                                        >
+                                            <span className="text-[14px] truncate flex-1 text-[#ECECF1] group-hover:text-white">
+                                                {item.title}
+                                            </span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <span className="material-symbols-outlined text-gray-500 group-hover:text-white transition-colors sidebar-full-content">settings</span>
+                )}
+            </div>
+
+            {/* Footer / Settings / Dev */}
+            <div className="p-2 border-t border-white/10">
+                {/* Dev Links (Temporary) */}
+                <div className="mb-2 px-2">
+                    {!isCollapsed && <div className="text-[10px] uppercase text-white/30 font-bold mb-1">Dev Tools</div>}
+                    {devItems.map((item) => (
+                         <Link
+                            key={item.path}
+                            to={item.path}
+                            className={clsx(
+                                "flex items-center gap-3 py-2 rounded-md hover:bg-[#2A2B32] transition-colors text-[#ECECF1]",
+                                location.pathname === item.path && "bg-[#343541]",
+                                isCollapsed ? "justify-center px-0" : "px-2"
+                            )}
+                            title={isCollapsed ? item.label : undefined}
+                        >
+                            <span className="material-symbols-outlined text-[18px] text-white/70">{item.icon}</span>
+                            {!isCollapsed && <span className="text-[13px]">{item.label}</span>}
+                        </Link>
+                    ))}
+                </div>
+
+                <button 
+                    className={clsx(
+                        "flex items-center gap-3 py-3 w-full rounded-md hover:bg-[#2A2B32] transition-colors text-left group",
+                        isCollapsed ? "justify-center px-0" : "px-3"
+                    )}
+                >
+                    <span className="material-symbols-outlined text-[20px] text-white/70 group-hover:text-white">settings</span>
+                    {!isCollapsed && <span className="text-[14px] text-[#ECECF1] group-hover:text-white">Settings</span>}
                 </button>
             </div>
         </aside>
