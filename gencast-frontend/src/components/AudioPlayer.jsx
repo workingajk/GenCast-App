@@ -1,97 +1,69 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Download, RotateCcw, CheckCircle } from 'lucide-react';
 
-export const AudioPlayer = ({ audioBuffer, onReset }) => {
+export const AudioPlayer = ({ audioUrl, onReset }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
-    const audioContextRef = useRef(null);
-    const sourceNodeRef = useRef(null);
-    const startTimeRef = useRef(0);
-    const pauseTimeRef = useRef(0);
-    const animationFrameRef = useRef(0);
+    const audioRef = useRef(null);
 
     useEffect(() => {
-        // Init audio context
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioRef.current) return;
+        
+        const audio = audioRef.current;
+        
+        const updateProgress = () => {
+            if (audio.duration) {
+                setProgress((audio.currentTime / audio.duration) * 100);
+            }
+        };
+
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setProgress(100);
+        };
+
+        audio.addEventListener('timeupdate', updateProgress);
+        audio.addEventListener('ended', handleEnded);
+        
         return () => {
-            audioContextRef.current?.close();
-            cancelAnimationFrame(animationFrameRef.current);
+            audio.removeEventListener('timeupdate', updateProgress);
+            audio.removeEventListener('ended', handleEnded);
         };
     }, []);
 
-    const play = () => {
-        if (!audioBuffer || !audioContextRef.current) return;
-
-        if (audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume();
-        }
-
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContextRef.current.destination);
-
-        // Start from saved pause time
-        const offset = pauseTimeRef.current % audioBuffer.duration;
-        source.start(0, offset);
-
-        startTimeRef.current = audioContextRef.current.currentTime - offset;
-        sourceNodeRef.current = source;
-        setIsPlaying(true);
-
-        source.onended = () => {
-            // Only reset if we reached the end naturally, not manually stopped
-            if (audioContextRef.current && audioContextRef.current.currentTime - startTimeRef.current >= audioBuffer.duration) {
-                setIsPlaying(false);
-                pauseTimeRef.current = 0;
-                setProgress(100);
-            }
-        };
-
-        const updateProgress = () => {
-            if (audioContextRef.current && isPlaying) {
-                const elapsed = audioContextRef.current.currentTime - startTimeRef.current;
-                const p = Math.min((elapsed / audioBuffer.duration) * 100, 100);
-                setProgress(p);
-                animationFrameRef.current = requestAnimationFrame(updateProgress);
-            }
-        };
-        updateProgress();
-    };
-
-    const pause = () => {
-        if (sourceNodeRef.current && audioContextRef.current) {
-            sourceNodeRef.current.stop();
-            pauseTimeRef.current = audioContextRef.current.currentTime - startTimeRef.current;
-            sourceNodeRef.current = null;
-            setIsPlaying(false);
-            cancelAnimationFrame(animationFrameRef.current);
-        }
-    };
-
     const togglePlay = () => {
-        if (isPlaying) pause();
-        else play();
+        if (!audioRef.current) return;
+        
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
     };
 
-    const downloadAudio = () => {
-        if (!audioBuffer) return;
-        // Quick/dirty wav conversion logic could go here or use a library. 
-        // For simplicity in this demo, we can't easily download the AudioBuffer without encoding it to WAV.
-        // I'll alert the user that this is a preview player. 
-        alert("Download feature requires WAV encoding. In a production app, this would trigger a .wav download.");
+    const handleSeek = (e) => {
+        if (!audioRef.current || !audioRef.current.duration) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = Math.min(Math.max(x / rect.width, 0), 1);
+        
+        audioRef.current.currentTime = percentage * audioRef.current.duration;
+        setProgress(percentage * 100);
     };
 
     const formatTime = (seconds) => {
+        if (!seconds) return "0:00";
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const duration = audioBuffer?.duration || 0;
-    const currentTime = (progress / 100) * duration;
-
     return (
         <div className="max-w-2xl mx-auto text-center space-y-10 text-text-main transition-colors duration-300">
+            <audio ref={audioRef} src={audioUrl} preload="metadata" />
+            
             <div className="bg-primary/5 text-primary p-10 rounded-[3rem] border border-primary/20 flex flex-col items-center gap-6 shadow-glow relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
                 <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center border border-primary/20 shadow-glow group-hover:scale-110 transition-transform duration-500">
@@ -113,11 +85,14 @@ export const AudioPlayer = ({ audioBuffer, onReset }) => {
 
                 <div className="relative z-10 space-y-8">
                     <div className="flex items-center justify-between text-[11px] font-bold text-text-muted tracking-[0.2em] uppercase">
-                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(currentTime)}</span>
-                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(duration)}</span>
+                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(audioRef.current?.currentTime)}</span>
+                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(audioRef.current?.duration)}</span>
                     </div>
 
-                    <div className="h-2.5 bg-bg-main rounded-full overflow-hidden relative border border-border-main group/progress cursor-pointer">
+                    <div 
+                        className="h-2.5 bg-bg-main rounded-full overflow-hidden relative border border-border-main group/progress cursor-pointer"
+                        onClick={handleSeek}
+                    >
                         <div
                             className="h-full bg-gradient-to-r from-primary/50 to-primary transition-all duration-100 ease-linear shadow-glow"
                             style={{ width: `${progress}%` }}
@@ -141,13 +116,14 @@ export const AudioPlayer = ({ audioBuffer, onReset }) => {
                             {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
                         </button>
 
-                        <button
-                            onClick={downloadAudio}
-                            className="p-4 text-text-muted hover:text-text-main hover:bg-primary/5 rounded-2xl transition-all"
+                        <a
+                            href={audioUrl}
+                            download="podcast.mp3"
+                            className="p-4 text-text-muted hover:text-text-main hover:bg-primary/5 rounded-2xl transition-all flex items-center justify-center"
                             title="Download Audio"
                         >
                             <Download size={28} />
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

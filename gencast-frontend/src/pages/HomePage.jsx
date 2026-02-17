@@ -1,25 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StepIndicator } from '../components/StepIndicator';
 import { TopicInput } from '../components/TopicInput';
 import { PlanningView } from '../components/PlanningView';
 import { ScriptEditor } from '../components/ScriptEditor';
 import { AudioPlayer } from '../components/AudioPlayer';
-import { generatePodcastPlan, generatePodcastScript, synthesizeSpeech } from '../services/geminiService';
-import { decodeBase64, decodeAudioData, concatenateAudioBuffers } from '../utils/audioUtils';
-import { SPEAKER_VOICE_MAP } from '../constants';
+import { podcastService, authService } from '../services/api';
 
 const HomePage = () => {
     // State
     const [step, setStep] = useState('input');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     // Data
     const [config, setConfig] = useState({ topic: '', speakers: 2 });
+    const [podcastId, setPodcastId] = useState(null); // Track ID from backend
     const [outline, setOutline] = useState(null);
     const [sources, setSources] = useState([]);
     const [script, setScript] = useState([]);
-    const [finalAudio, setFinalAudio] = useState(null);
+    const [audioUrl, setAudioUrl] = useState(null);
+
+    // Auth check
+    useEffect(() => {
+        if (!authService.isAuthenticated()) {
+            navigate('/login');
+        }
+    }, [navigate]);
 
     // Handlers
     const handleGeneratePlan = async (topic, speakers) => {
@@ -28,31 +36,33 @@ const HomePage = () => {
         setConfig({ topic, speakers });
 
         try {
-            const { outline: plan, sources: refs } = await generatePodcastPlan(topic, speakers);
-            setOutline(plan);
-            setSources(refs);
+            // Call backend to create podcast plan
+            const data = await podcastService.create(topic, speakers);
+            setPodcastId(data.id);
+            setOutline(data.outline);
+            setSources(data.sources || []);
             setStep('planning');
         } catch (e) {
             console.error(e);
-            setError("Failed to generate plan. Please try again. Ensure API_KEY is set.");
+            if (e.response && e.response.status === 401) {
+                 navigate('/login');
+                 return;
+            }
+            setError("Failed to generate plan. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
     const handleGenerateScript = async () => {
-        if (!outline) return;
+        if (!podcastId) return;
         setLoading(true);
         setError(null);
 
         try {
-            const generatedScript = await generatePodcastScript(
-                config.topic,
-                outline,
-                config.speakers,
-                sources
-            );
-            setScript(generatedScript);
+            // Trigger backend script generation
+            const data = await podcastService.generateScript(podcastId);
+            setScript(data.script_content);
             setStep('scripting');
         } catch (e) {
             console.error(e);
@@ -62,34 +72,39 @@ const HomePage = () => {
         }
     };
 
+    const handleUpdateScript = async (newScript) => {
+        setScript(newScript);
+        // Debounced save could be added here, currently saving on "next" or explicit save
+        try {
+            await podcastService.updateScript(podcastId, newScript);
+        } catch (e) {
+            console.error("Failed to auto-save script", e);
+        }
+    };
+
     const handleSynthesizeAudio = async () => {
+        if (!podcastId) return;
         setLoading(true);
         setError(null);
 
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const buffers = [];
-
-            // Process sequentially to maintain order and context
-            for (const line of script) {
-                if (!line.text.trim()) continue;
-
-                // Map speaker to voice
-                const voice = SPEAKER_VOICE_MAP[line.speaker] || 'Puck'; // Default to Puck
-
-                const base64Audio = await synthesizeSpeech(line.text, voice);
-                const audioBytes = decodeBase64(base64Audio);
-                // Pass 24000Hz and 1 channel as Gemini 2.5 Flash TTS outputs raw PCM at this rate
-                const audioBuffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
-                buffers.push(audioBuffer);
+            // First ensure latest script is saved
+            await podcastService.updateScript(podcastId, script);
+            
+            // Trigger TTS
+            const data = await podcastService.generateAudio(podcastId);
+            
+            if (data.audio_url) {
+                // Determine full URL if relative
+                const url = data.audio_url.startsWith('http') 
+                    ? data.audio_url 
+                    : `${import.meta.env.VITE_API_URL.replace('/api', '')}${data.audio_url}`;
+                
+                setAudioUrl(url);
+                setStep('audio');
+            } else {
+                throw new Error("No audio URL returned");
             }
-
-            const combinedBuffer = concatenateAudioBuffers(buffers, audioContext);
-            setFinalAudio(combinedBuffer);
-            setStep('audio');
-
-            // Clean up temp context
-            audioContext.close();
 
         } catch (e) {
             console.error(e);
@@ -103,8 +118,9 @@ const HomePage = () => {
         setStep('input');
         setOutline(null);
         setScript([]);
-        setFinalAudio(null);
+        setAudioUrl(null);
         setError(null);
+        setPodcastId(null);
     };
 
     return (
@@ -117,6 +133,13 @@ const HomePage = () => {
                 <p className="text-text-muted font-medium max-w-xl mx-auto leading-relaxed">
                     Research-Based RAG Podcast Generation. Just provide a topic, and we'll handle the rest.
                 </p>
+                {/* Logout button for testing */}
+                <button 
+                    onClick={() => { authService.logout(); navigate('/login'); }}
+                    className="absolute top-4 right-4 text-xs text-text-muted hover:text-red-500"
+                >
+                    Logout
+                </button>
             </header>
 
             <StepIndicator currentStep={step} />
@@ -144,7 +167,7 @@ const HomePage = () => {
                 {step === 'scripting' && (
                     <ScriptEditor
                         script={script}
-                        setScript={setScript}
+                        setScript={handleUpdateScript}
                         onSynthesize={handleSynthesizeAudio}
                         isSynthesizing={loading}
                     />
@@ -152,7 +175,7 @@ const HomePage = () => {
 
                 {step === 'audio' && (
                     <AudioPlayer
-                        audioBuffer={finalAudio}
+                        audioUrl={audioUrl}
                         onReset={reset}
                     />
                 )}

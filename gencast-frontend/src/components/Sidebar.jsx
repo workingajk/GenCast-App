@@ -1,34 +1,71 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { clsx } from 'clsx';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import clsx from 'clsx';
+import { podcastService, authService } from '../services/api';
 
 const Sidebar = () => {
     const location = useLocation();
-    const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const navigate = useNavigate();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [historyGroups, setHistoryGroups] = useState([]);
 
-    // Mock data for history
-    const historyGroups = [
-        {
-            label: 'Today',
-            items: [
-                { id: 1, title: 'The Future of AI', path: '/player' },
-                { id: 2, title: 'History of Rome', path: '/player' },
-            ]
-        },
-        {
-            label: 'Yesterday',
-            items: [
-                { id: 3, title: 'Quantum Computing 101', path: '/player' },
-            ]
-        },
-        {
-            label: 'Previous 7 Days',
-            items: [
-                { id: 4, title: 'Meditations on First Philosophy', path: '/player' },
-                { id: 5, title: 'Learn Spanish in 30 Days', path: '/player' },
-            ]
+    useEffect(() => {
+        loadHistory();
+    }, [isCollapsed]); // Reload when toggled, or could depend on a global refresh trigger
+
+    const loadHistory = async () => {
+        if (!authService.isAuthenticated()) return;
+        
+        try {
+            const podcasts = await podcastService.list();
+            const groups = groupPodcastsByDate(podcasts);
+            setHistoryGroups(groups);
+        } catch (e) {
+            console.error("Failed to load history", e);
         }
-    ];
+    };
+
+    const groupPodcastsByDate = (podcasts) => {
+        const groups = {
+            'Today': [],
+            'Yesterday': [],
+            'Previous 7 Days': [],
+            'Older': []
+        };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        podcasts.forEach(podcast => {
+            const date = new Date(podcast.created_at);
+            date.setHours(0, 0, 0, 0);
+            
+            if (date.getTime() === today.getTime()) {
+                groups['Today'].push(podcast);
+            } else if (date.getTime() === yesterday.getTime()) {
+                groups['Yesterday'].push(podcast);
+            } else if (date > lastWeek) {
+                groups['Previous 7 Days'].push(podcast);
+            } else {
+                groups['Older'].push(podcast);
+            }
+        });
+
+        return Object.entries(groups)
+            .filter(([_, items]) => items.length > 0)
+            .map(([label, items]) => ({ label, items }));
+    };
+
+    const handleLogout = () => {
+        authService.logout();
+        navigate('/login');
+    };
 
     const devItems = [
         { path: '/editor', label: 'Editor', icon: 'edit_note' },
@@ -38,7 +75,7 @@ const Sidebar = () => {
     return (
         <aside 
             className={clsx(
-                "bg-[#000000] flex flex-col h-screen text-[#ECECF1] relative z-20 transition-all duration-300 ease-in-out",
+                "bg-[#000000] flex flex-col h-screen text-[#ECECF1] relative z-20 transition-all duration-300 ease-in-out border-r border-white/10",
                 isCollapsed ? "w-[80px]" : "w-[260px]"
             )}
         >
@@ -84,21 +121,27 @@ const Sidebar = () => {
                         {historyGroups.map((group) => (
                             <div key={group.label}>
                                 <div className="px-3 text-[12px] font-medium text-[#c5c5d0] mb-2">{group.label}</div>
-                                <div className="flex flex-col">
+                                <div className="flex flex-col gap-1">
                                     {group.items.map((item) => (
-                                        <Link
+                                        <button
                                             key={item.id}
-                                            to={item.path}
-                                            className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] group transition-colors overflow-hidden"
+                                            onClick={() => {
+                                                navigate(`/podcast/${item.id}`);
+                                            }}
+                                            className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] group transition-colors overflow-hidden w-full text-left"
                                         >
+                                            <span className={clsx("size-2 rounded-full flex-shrink-0", item.status === 'completed' ? 'bg-green-500' : 'bg-gray-500')}></span>
                                             <span className="text-[14px] truncate flex-1 text-[#ECECF1] group-hover:text-white">
-                                                {item.title}
+                                                {item.title || item.topic}
                                             </span>
-                                        </Link>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
                         ))}
+                        {historyGroups.length === 0 && (
+                             <div className="text-center text-xs text-white/30 py-4">No history yet</div>
+                        )}
                     </div>
                 )}
             </div>
@@ -126,13 +169,14 @@ const Sidebar = () => {
                 </div>
 
                 <button 
+                    onClick={handleLogout}
                     className={clsx(
                         "flex items-center gap-3 py-3 w-full rounded-md hover:bg-[#2A2B32] transition-colors text-left group",
                         isCollapsed ? "justify-center px-0" : "px-3"
                     )}
                 >
-                    <span className="material-symbols-outlined text-[20px] text-white/70 group-hover:text-white">settings</span>
-                    {!isCollapsed && <span className="text-[14px] text-[#ECECF1] group-hover:text-white">Settings</span>}
+                    <span className="material-symbols-outlined text-[20px] text-white/70 group-hover:text-red-400">logout</span>
+                    {!isCollapsed && <span className="text-[14px] text-[#ECECF1] group-hover:text-red-400">Log out</span>}
                 </button>
             </div>
         </aside>

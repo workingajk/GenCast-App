@@ -1,76 +1,159 @@
-import json
-import os
-import google.generativeai as genai
-from rest_framework import status, views
+from rest_framework import generics, status, views
 from rest_framework.response import Response
-from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from .models import Podcast
-from .serializers import PodcastSerializer
+from .serializers import (
+    PodcastListSerializer, 
+    PodcastDetailSerializer, 
+    ScriptUpdateSerializer
+)
+from .services import generate_plan, generate_script
+from .tts import synthesize_podcast, concatenate_and_save
+from asgiref.sync import async_to_sync
 
 class PodcastCreateView(views.APIView):
+    """
+    POST /api/podcasts/create/
+    Input: { "topic": "str", "speakers": int }
+    Action: Generates plan (outline + sources) using Gemini
+    """
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         topic = request.data.get('topic')
+        speaker_count = request.data.get('speakers', 2)
+        
         if not topic:
-            return Response({'error': 'Topic is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 1. Mock Retrieval (RAG)
-        # In a real scenario, we would search the web here.
-        retrieved_context = f"Summary of recent events and facts about: {topic}. (Mocked Search Result)"
-
-        # 2. Generate Script using Gemini
+            return Response({"error": "Topic is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
         try:
-            script_content = self.generate_script(topic, retrieved_context)
+            # 1. Generate Plan (Gemini + Search)
+            plan_data = generate_plan(topic, speaker_count)
+            
+            # 2. Create Podcast Record
+            podcast = Podcast.objects.create(
+                user=request.user,
+                topic=topic,
+                speaker_count=speaker_count,
+                title=plan_data['outline'].get('title', topic),
+                outline=plan_data['outline'],
+                sources=plan_data['sources'],
+                status='planned'
+            )
+            
+            serializer = PodcastDetailSerializer(podcast)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback; traceback.print_exc()
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 3. Create Podcast Record
-        podcast = Podcast.objects.create(
-            user=request.user if request.user.is_authenticated else None, # Allow anonymous for now or handle auth
-            topic=topic,
-            script_content=script_content,
-            title=f"Podcast about {topic}"
-        )
+class PodcastListView(generics.ListAPIView):
+    """
+    GET /api/podcasts/
+    Lists all podcasts for the current user
+    """
+    serializer_class = PodcastListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Podcast.objects.filter(user=self.request.user).order_by('-created_at')
+
+class PodcastDetailView(generics.RetrieveDestroyAPIView):
+    """
+    GET /api/podcasts/{id}/
+    DELETE /api/podcasts/{id}/
+    """
+    serializer_class = PodcastDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Podcast.objects.filter(user=self.request.user)
+
+class PodcastScriptView(views.APIView):
+    """
+    GET /api/podcasts/{id}/script/ - Get script
+    PUT /api/podcasts/{id}/script/ - Update script manually
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        return get_object_or_404(Podcast, pk=pk, user=self.request.user)
+
+    def get(self, request, pk):
+        podcast = self.get_object(pk)
+        return Response({"script_content": podcast.script_content})
+
+    def put(self, request, pk):
+        podcast = self.get_object(pk)
+        serializer = ScriptUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            podcast.script_content = serializer.validated_data['script_content']
+            podcast.save()
+            return Response(serializer.validated_data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PodcastGenerateScriptView(views.APIView):
+    """
+    POST /api/podcasts/{id}/generate-script/
+    Triggers Gemini to write the script based on outline/sources
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        podcast = get_object_or_404(Podcast, pk=pk, user=request.user)
         
-        # If user is not authenticated, we might need to handle it differently, 
-        # but for now assuming authenticated or nullable user based on model.
-        # Wait, model has user as FK. Let's assume request.user is used.
-        # If the user is not logged in, this will fail if user is required.
-        # The spec implies auth is required ("POST /api/auth/register & login").
-        # For this step, I will assume the user is authenticated or I'll handle the case where they aren't if I can't enforce it yet.
-        # Actually, let's enforce auth in the view if needed, but for testing I might want to allow it.
-        # Let's stick to the plan: "Create Podcast record".
+        if not podcast.outline:
+            return Response({"error": "Podcast has no outline. Create one first."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            script = generate_script(podcast.outline, podcast.sources, podcast.speaker_count)
+            podcast.script_content = script
+            podcast.status = 'scripted'
+            podcast.save()
+            
+            return Response({"script_content": script})
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PodcastGenerateAudioView(views.APIView):
+    """
+    POST /api/podcasts/{id}/generate-audio/
+    Triggers Edge TTS to generate audio from script
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        podcast = get_object_or_404(Podcast, pk=pk, user=request.user)
         
-        return Response({'script_id': podcast.id, 'script': script_content}, status=status.HTTP_201_CREATED)
-
-    def generate_script(self, topic, context):
-        api_key = settings.GEMINI_API_KEY
-        if not api_key:
-            raise Exception("GEMINI_API_KEY not configured")
-        
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-
-        prompt = f"""
-        You are a professional podcast script writer.
-        Topic: {topic}
-        Context: {context}
-
-        Generate a dialogue script between a Host and a Guest.
-        The output must be a valid JSON list of objects, where each object has "speaker" (either "Host" or "Guest") and "text".
-        Example:
-        [
-            {{"speaker": "Host", "text": "Welcome to the show!"}},
-            {{"speaker": "Guest", "text": "Thanks for having me."}}
-        ]
-        Do not include markdown formatting (like ```json). Just return the raw JSON.
-        """
-
-        response = model.generate_content(prompt)
+        if not podcast.script_content:
+            return Response({"error": "Podcast has no script. Generate one first."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        podcast.status = 'synthesizing'
+        podcast.save()
         
         try:
-            # Clean up potential markdown code blocks if Gemini adds them
-            text = response.text.replace('```json', '').replace('```', '').strip()
-            return json.loads(text)
-        except json.JSONDecodeError:
-            # Fallback or retry logic could go here
-            raise Exception("Failed to parse Gemini response as JSON: " + response.text)
+            # Run async TTS code in synchronous view
+            # Note: For production, this should be a Celery task
+            segments = async_to_sync(synthesize_podcast)(podcast.script_content)
+            
+            filename = f"{podcast.id}_{podcast.title[:20].replace(' ', '_')}.mp3"
+            file_path = concatenate_and_save(segments, filename)
+            
+            # Save file path relative to MEDIA_ROOT
+            podcast.audio_file.name = f"podcasts/{filename}"
+            podcast.status = 'completed'
+            podcast.save()
+            
+            return Response({
+                "audio_url": podcast.audio_file.url,
+                "status": "completed"
+            })
+            
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            podcast.status = 'failed'
+            podcast.save()
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

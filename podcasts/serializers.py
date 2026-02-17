@@ -6,8 +6,22 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'date_joined']
 
-class PodcastSerializer(serializers.ModelSerializer):
+class PodcastListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing podcasts"""
     class Meta:
         model = Podcast
-        fields = ['id', 'user', 'title', 'topic', 'script_content', 'audio_file_url', 'created_at']
-        read_only_fields = ['user', 'created_at', 'script_content', 'audio_file_url']
+        fields = ['id', 'title', 'topic', 'status', 'created_at']
+
+class PodcastDetailSerializer(serializers.ModelSerializer):
+    """Full detail including outline, sources, script"""
+    class Meta:
+        model = Podcast
+        fields = ['id', 'title', 'topic', 'speaker_count', 'outline',
+                  'sources', 'script_content', 'audio_file', 'status', 'created_at']
+        read_only_fields = ['outline', 'sources', 'script_content', 'audio_file', 'status', 'created_at']
+
+class ScriptUpdateSerializer(serializers.Serializer):
+    """For PUT /script endpoint"""
+    script_content = serializers.ListField(
+        child=serializers.DictField()
+    )

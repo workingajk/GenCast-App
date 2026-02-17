@@ -1,0 +1,68 @@
+import edge_tts
+import asyncio
+import os
+import io
+from django.conf import settings
+
+# Pluggable interface — only this file changes when swapping TTS engines
+SPEAKER_VOICE_MAP = {
+    'Host': 'en-US-GuyNeural',
+    'Guest': 'en-US-JennyNeural',
+    'Speaker 3': 'en-US-AriaNeural',
+    'Speaker 4': 'en-US-DavisNeural',
+}
+
+async def synthesize_line(text: str, voice: str) -> bytes:
+    """Returns MP3 bytes for a single line using Edge TTS."""
+    communicate = edge_tts.Communicate(text, voice)
+    mp3_io = io.BytesIO()
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            mp3_io.write(chunk["data"])
+    return mp3_io.getvalue()
+
+async def synthesize_podcast(script):
+    """
+    Iterates through script lines and synthesizes audio segments.
+    Returns a list of (speaker, audio_bytes).
+    Actually returns just bytes list based on current usage.
+    """
+    segments = []
+    for line in script:
+        speaker = line.get('speaker', 'Host')
+        text = line.get('text', '')
+        if not text.strip():
+            continue
+            
+        voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')
+        
+        # Retry logic for network flakiness
+        for _ in range(3):
+            try:
+                audio_bytes = await synthesize_line(text, voice)
+                segments.append(audio_bytes)
+                break
+            except Exception as e:
+                print(f"Error synthesizing line: {e}, retrying...")
+                await asyncio.sleep(1)
+                
+    return segments
+
+def concatenate_and_save(segments, output_filename):
+    """
+    Concatenates MP3 segments by simple binary appending.
+    This avoids ffmpeg/pydub dependencies.
+    Note: Silence between segments is omitted for simplicity.
+    """
+    if not segments:
+        return None
+
+    # Ensure output directory exists
+    output_path = os.path.join(settings.MEDIA_ROOT, 'podcasts', output_filename)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(output_path, 'wb') as f:
+        for seg_bytes in segments:
+            f.write(seg_bytes)
+            
+    return output_path
