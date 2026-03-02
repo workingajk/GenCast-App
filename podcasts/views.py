@@ -142,10 +142,11 @@ class PodcastGenerateAudioView(views.APIView):
             import re
             clean_title = re.sub(r'[^\w\s-]', '', podcast.title[:20]).strip().replace(' ', '_')
             filename = f"{podcast.id}_{clean_title}.mp3"
-            file_path = concatenate_and_save(segments, filename)
+            # Concatenate and save to storage (local or S3)
+            saved_name = concatenate_and_save(segments, filename)
             
-            # Save file path relative to MEDIA_ROOT
-            podcast.audio_file.name = f"podcasts/{filename}"
+            # Update podcast record with the saved storage path
+            podcast.audio_file.name = saved_name
             podcast.status = 'completed'
             podcast.save()
             

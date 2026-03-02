@@ -48,21 +48,26 @@ async def synthesize_podcast(script):
                 
     return segments
 
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+
 def concatenate_and_save(segments, output_filename):
     """
-    Concatenates MP3 segments by simple binary appending.
-    This avoids ffmpeg/pydub dependencies.
-    Note: Silence between segments is omitted for simplicity.
+    Concatenates MP3 segments and saves them using the default storage.
     """
     if not segments:
         return None
 
-    # Ensure output directory exists
-    output_path = os.path.join(settings.MEDIA_ROOT, 'podcasts', output_filename)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-    with open(output_path, 'wb') as f:
-        for seg_bytes in segments:
-            f.write(seg_bytes)
-            
-    return output_path
+    # Join the MP3 chunks into one byte-stream
+    audio_data = b"".join(segments)
+    
+    # Path inside the storage (media root)
+    filename = f"podcasts/{output_filename}"
+    
+    # Save the file using Django's storage API
+    if default_storage.exists(filename):
+        default_storage.delete(filename)
+        
+    saved_name = default_storage.save(filename, ContentFile(audio_data))
+    
+    return saved_name
