@@ -15,7 +15,7 @@ const Sidebar = () => {
 
     const loadHistory = async () => {
         if (!authService.isAuthenticated()) return;
-        
+
         try {
             const podcasts = await podcastService.list();
             const groups = groupPodcastsByDate(podcasts);
@@ -35,17 +35,17 @@ const Sidebar = () => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         const lastWeek = new Date(today);
         lastWeek.setDate(lastWeek.getDate() - 7);
 
         podcasts.forEach(podcast => {
             const date = new Date(podcast.created_at);
             date.setHours(0, 0, 0, 0);
-            
+
             if (date.getTime() === today.getTime()) {
                 groups['Today'].push(podcast);
             } else if (date.getTime() === yesterday.getTime()) {
@@ -73,7 +73,7 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside 
+        <aside
             className={clsx(
                 "bg-[#000000] flex flex-col h-screen text-[#ECECF1] relative z-20 transition-all duration-300 ease-in-out border-r border-white/10",
                 isCollapsed ? "w-[80px]" : "w-[260px]"
@@ -81,29 +81,29 @@ const Sidebar = () => {
         >
             {/* Header / Branding */}
             <div className={clsx("px-4 py-3 mb-2 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
-                 {!isCollapsed && (
-                     <div className="flex items-center gap-2">
+                {!isCollapsed && (
+                    <div className="flex items-center gap-2">
                         <div className="size-8 rounded-sm bg-indigo-500 flex items-center justify-center text-white font-bold text-xs">
                             GC
                         </div>
                         <span className="text-[16px] font-bold text-white tracking-tight">GenCast</span>
-                     </div>
-                 )}
-                 
-                 <button 
+                    </div>
+                )}
+
+                <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="p-2 hover:bg-[#2A2B32] rounded-md transition-colors text-white/70 hover:text-white"
-                 >
+                >
                     <span className="material-symbols-outlined text-[20px]">
                         {isCollapsed ? 'dock_to_right' : 'dock_to_left'}
                     </span>
-                 </button>
+                </button>
             </div>
 
             {/* New Podcast Button */}
             <div className="px-3 mb-4">
-                <Link 
-                    to="/" 
+                <Link
+                    to="/"
                     className={clsx(
                         "flex items-center gap-2 py-3 rounded-md hover:bg-[#2A2B32] transition-colors border border-white/20 cursor-pointer group",
                         isCollapsed ? "justify-center px-0" : "px-3"
@@ -123,24 +123,46 @@ const Sidebar = () => {
                                 <div className="px-3 text-[12px] font-medium text-[#c5c5d0] mb-2">{group.label}</div>
                                 <div className="flex flex-col gap-1">
                                     {group.items.map((item) => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                navigate(`/podcast/${item.id}`);
-                                            }}
-                                            className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] group transition-colors overflow-hidden w-full text-left"
-                                        >
-                                            <span className={clsx("size-2 rounded-full flex-shrink-0", item.status === 'completed' ? 'bg-green-500' : 'bg-gray-500')}></span>
-                                            <span className="text-[14px] truncate flex-1 text-[#ECECF1] group-hover:text-white">
-                                                {item.title || item.topic}
-                                            </span>
-                                        </button>
+                                        <div key={item.id} className="relative w-full group/item">
+                                            <button
+                                                onClick={() => {
+                                                    navigate(`/podcast/${item.id}`);
+                                                }}
+                                                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] transition-colors overflow-hidden w-full text-left pr-10"
+                                            >
+                                                <span className={clsx("size-2 rounded-full flex-shrink-0", item.status === 'completed' ? 'bg-green-500' : 'bg-gray-500')}></span>
+                                                <span className="text-[14px] truncate flex-1 text-[#ECECF1] group-hover/item:text-white">
+                                                    {item.title || item.topic}
+                                                </span>
+                                            </button>
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm('Are you sure you want to delete this podcast?')) {
+                                                        try {
+                                                            await podcastService.delete(item.id);
+                                                            if (location.pathname === `/podcast/${item.id}`) {
+                                                                navigate('/');
+                                                            }
+                                                            loadHistory();
+                                                        } catch (err) {
+                                                            console.error("Failed to delete podcast", err);
+                                                            alert("Failed to delete podcast");
+                                                        }
+                                                    }
+                                                }}
+                                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-white/40 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/item:opacity-100 transition-all flex items-center justify-center"
+                                                title="Delete Podcast"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px] block">delete</span>
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         ))}
                         {historyGroups.length === 0 && (
-                             <div className="text-center text-xs text-white/30 py-4">No history yet</div>
+                            <div className="text-center text-xs text-white/30 py-4">No history yet</div>
                         )}
                     </div>
                 )}
@@ -152,7 +174,7 @@ const Sidebar = () => {
                 <div className="mb-2 px-2">
                     {!isCollapsed && <div className="text-[10px] uppercase text-white/30 font-bold mb-1">Dev Tools</div>}
                     {devItems.map((item) => (
-                         <Link
+                        <Link
                             key={item.path}
                             to={item.path}
                             className={clsx(
@@ -168,7 +190,7 @@ const Sidebar = () => {
                     ))}
                 </div>
 
-                <button 
+                <button
                     onClick={handleLogout}
                     className={clsx(
                         "flex items-center gap-3 py-3 w-full rounded-md hover:bg-[#2A2B32] transition-colors text-left group",

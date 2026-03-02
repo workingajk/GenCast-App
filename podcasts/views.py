@@ -71,6 +71,12 @@ class PodcastDetailView(generics.RetrieveDestroyAPIView):
     def get_queryset(self):
         return Podcast.objects.filter(user=self.request.user)
 
+    def perform_destroy(self, instance):
+        if instance.audio_file:
+            # Delete the file from storage
+            instance.audio_file.delete(save=False)
+        super().perform_destroy(instance)
+
 class PodcastScriptView(views.APIView):
     """
     GET /api/podcasts/{id}/script/ - Get script
