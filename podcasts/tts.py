@@ -21,13 +21,23 @@ async def synthesize_line(text: str, voice: str) -> bytes:
             mp3_io.write(chunk["data"])
     return mp3_io.getvalue()
 
+async def _synthesize_single_line_with_retry(text: str, voice: str) -> bytes:
+    """Synthesizes a single line with retry logic for network flakiness."""
+    for _ in range(3):
+        try:
+            return await synthesize_line(text, voice)
+        except Exception as e:
+            print(f"Error synthesizing line: {e}, retrying...")
+            await asyncio.sleep(1)
+    return b""
+
 async def synthesize_podcast(script):
     """
-    Iterates through script lines and synthesizes audio segments.
+    Iterates through script lines and synthesizes audio segments concurrently.
     Returns a list of (speaker, audio_bytes).
     Actually returns just bytes list based on current usage.
     """
-    segments = []
+    tasks = []
     for line in script:
         speaker = line.get('speaker', 'Host')
         text = line.get('text', '')
@@ -35,16 +45,12 @@ async def synthesize_podcast(script):
             continue
             
         voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')
+        tasks.append(_synthesize_single_line_with_retry(text, voice))
         
-        # Retry logic for network flakiness
-        for _ in range(3):
-            try:
-                audio_bytes = await synthesize_line(text, voice)
-                segments.append(audio_bytes)
-                break
-            except Exception as e:
-                print(f"Error synthesizing line: {e}, retrying...")
-                await asyncio.sleep(1)
+    results = await asyncio.gather(*tasks)
+
+    # Filter out empty bytes from retries that failed completely
+    segments = [res for res in results if res]
                 
     return segments
 
