@@ -67,11 +67,6 @@ const Sidebar = () => {
         navigate('/login');
     };
 
-    const devItems = [
-        { path: '/editor', label: 'Editor', icon: 'edit_note' },
-        { path: '/player', label: 'Player', icon: 'play_circle' },
-    ];
-
     return (
         <aside
             className={clsx(
@@ -168,28 +163,8 @@ const Sidebar = () => {
                 )}
             </div>
 
-            {/* Footer / Settings / Dev */}
+            {/* Footer / Settings */}
             <div className="p-2 border-t border-white/10">
-                {/* Dev Links (Temporary) */}
-                <div className="mb-2 px-2">
-                    {!isCollapsed && <div className="text-[10px] uppercase text-white/30 font-bold mb-1">Dev Tools</div>}
-                    {devItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={clsx(
-                                "flex items-center gap-3 py-2 rounded-md hover:bg-[#2A2B32] transition-colors text-[#ECECF1]",
-                                location.pathname === item.path && "bg-[#343541]",
-                                isCollapsed ? "justify-center px-0" : "px-2"
-                            )}
-                            title={isCollapsed ? item.label : undefined}
-                        >
-                            <span className="material-symbols-outlined text-[18px] text-white/70">{item.icon}</span>
-                            {!isCollapsed && <span className="text-[13px]">{item.label}</span>}
-                        </Link>
-                    ))}
-                </div>
-
                 <button
                     onClick={handleLogout}
                     className={clsx(

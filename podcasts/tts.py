@@ -3,6 +3,8 @@ import asyncio
 import os
 import io
 from gtts import gTTS
+import gradio_client
+from gradio_client import Client, handle_file
 from django.conf import settings
 
 # Pluggable interface — only this file changes when swapping TTS engines
@@ -25,9 +27,40 @@ async def synthesize_line_edge(text: str, voice: str) -> bytes:
 async def synthesize_line_gtts(text: str) -> bytes:
     """Returns MP3 bytes for a single line using gTTS."""
     mp3_io = io.BytesIO()
-    tts = gTTS(text=text, lang='en')
-    tts.write_to_fp(mp3_io)
+    # Run synchronous gTTS in a thread to keep async interface
+    def _run_gtts():
+        tts = gTTS(text=text, lang='en')
+        tts.write_to_fp(mp3_io)
+    await asyncio.to_thread(_run_gtts)
     return mp3_io.getvalue()
+
+def _run_chatterbox(text: str) -> bytes:
+    """Synchronous call to Gradio API for Chatterbox."""
+    client = Client("resembleai/chatterbox")
+    # Using a default audio sample provided by the repository as a reference prompt.
+    filepath = client.predict(
+        text_input=text,
+        audio_prompt_path_input=handle_file("https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"),
+        exaggeration_input=0.5,
+        temperature_input=0.8,
+        seed_num_input=0,
+        cfgw_input=0.5,
+        vad_trim_input=False,
+        api_name="/generate_tts_audio"
+    )
+    with open(filepath, 'rb') as f:
+        audio_bytes = f.read()
+    
+    # Gradio optionally handles temp paths, we unlink it.
+    try:
+        os.unlink(filepath)
+    except Exception:
+        pass
+    return audio_bytes
+
+async def synthesize_line_chatterbox(text: str) -> bytes:
+    """Returns WAV/MP3 bytes using Resemble AI Chatterbox."""
+    return await asyncio.to_thread(_run_chatterbox, text)
 
 async def synthesize_podcast(script, model='edge'):
     """
@@ -52,10 +85,14 @@ async def synthesize_podcast(script, model='edge'):
                     # gTTS implementation
                     tld = gtts_tlds.get(speaker, 'com')
                     mp3_io = io.BytesIO()
-                    # Run synchronous gTTS in a thread to keep async interface
-                    tts = gTTS(text=text, lang='en', tld=tld)
-                    tts.write_to_fp(mp3_io)
+                    def _run_gtts_tld():
+                        tts = gTTS(text=text, lang='en', tld=tld)
+                        tts.write_to_fp(mp3_io)
+                    await asyncio.to_thread(_run_gtts_tld)
                     audio_bytes = mp3_io.getvalue()
+                elif model == 'chatterbox':
+                    # Resemble AI Chatterbox (via HF Spaces)
+                    audio_bytes = await synthesize_line_chatterbox(text)
                 else:
                     # Edge TTS implementation
                     voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')

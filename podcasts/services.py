@@ -1,4 +1,5 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from django.conf import settings
 import json
 import re
@@ -6,8 +7,8 @@ import re
 def get_gemini_client():
     if not settings.GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY not configured")
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return client
 
 def generate_plan(topic, speaker_count=2):
     """
@@ -15,17 +16,60 @@ def generate_plan(topic, speaker_count=2):
     Returns { outline: {...}, sources: [...] }
     """
     client = get_gemini_client()
-    model = client.GenerativeModel('gemini-2.5-flash')
     
-    prompt = f"""
+    # Step 1: Preliminary Search
+    search_prompt = f"""
+    You are an expert researcher.
+    Topic: "{topic}"
+    
+    Your task is to thoroughly research this topic using Google Search.
+    Gather factual, relevant, and up-to-date information, focusing on key points 
+    that would make for an engaging {speaker_count}-speaker podcast episode.
+    Write a detailed summary of your findings to be used for planning the episode.
+    """
+    
+    search_response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=search_prompt,
+        config=types.GenerateContentConfig(
+            tools=[{"google_search": {}}]
+        )
+    )
+    
+    research_text = search_response.text or ""
+    
+    # Extract grounding metadata (sources)
+    sources = []
+    if search_response.candidates:
+        grounding = search_response.candidates[0].grounding_metadata
+        if grounding and getattr(grounding, 'grounding_chunks', None):
+            for chunk in grounding.grounding_chunks:
+                if getattr(chunk, 'web', None) and getattr(chunk.web, 'uri', None) and getattr(chunk.web, 'title', None):
+                    sources.append({
+                        "title": chunk.web.title,
+                        "uri": chunk.web.uri
+                    })
+                
+    # Deduplicate sources by URI
+    unique_sources = []
+    seen_uris = set()
+    for s in sources:
+        if s['uri'] not in seen_uris:
+            unique_sources.append(s)
+            seen_uris.add(s['uri'])
+            
+    # Step 2: Outline Generation
+    outline_prompt = f"""
     You are an expert podcast producer. 
     Topic: "{topic}"
     Target format: A structured podcast with {speaker_count} speakers.
     
+    Research Material from Preliminary Search:
+    {research_text}
+    
     Task:
-    1. Research the topic using Google Search to find relevant, factual, and up-to-date information.
-    2. Create a high-level outline for a 5-minute podcast episode.
-    3. The outline should include a catchy title, a brief summary, and 4-5 key discussion points (subtopics).
+    1. Create a high-level outline for a 5-minute podcast episode based on the Research Material above.
+    2. The outline should include a catchy title, a brief summary, and 4-5 key discussion points (subtopics).
     
     OUTPUT FORMAT:
     Return strictly a JSON object with this structure:
@@ -37,16 +81,16 @@ def generate_plan(topic, speaker_count=2):
     Do not include any markdown formatting or explanations outside the JSON.
     """
     
-    # Updated tool configuration for google-generativeai >= 0.8.5
-    tool = genai.protos.Tool(google_search={})
-    response = model.generate_content(
-        prompt,
-        tools=[tool]
+    outline_response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=outline_prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json"
+        )
     )
     
     # Extract text and parse JSON
-    text = response.text or "{}"
-    text = text.replace("```json", "").replace("```", "").strip()
+    text = outline_response.text or "{}"
     
     try:
         outline = json.loads(text)
@@ -57,24 +101,6 @@ def generate_plan(topic, speaker_count=2):
             outline = json.loads(match.group(1))
         else:
             raise ValueError("Failed to parse Gemini response as JSON")
-            
-    # Extract grounding metadata (sources)
-    sources = []
-    if response.candidates and response.candidates[0].grounding_metadata:
-        for chunk in response.candidates[0].grounding_metadata.grounding_chunks:
-            if chunk.web and chunk.web.uri and chunk.web.title:
-                sources.append({
-                    "title": chunk.web.title,
-                    "uri": chunk.web.uri
-                })
-                
-    # Deduplicate sources by URI
-    unique_sources = []
-    seen_uris = set()
-    for s in sources:
-        if s['uri'] not in seen_uris:
-            unique_sources.append(s)
-            seen_uris.add(s['uri'])
             
     return {
         "outline": outline,
@@ -87,7 +113,6 @@ def generate_script(outline, sources, speaker_count=2):
     Returns list of { speaker: "Host", text: "..." }
     """
     client = get_gemini_client()
-    model = client.GenerativeModel('gemini-2.5-flash')
     
     sources = sources or []
     source_context = "\n".join([f"- {s['title']}: {s['uri']}" for s in sources])
@@ -117,18 +142,29 @@ def generate_script(outline, sources, speaker_count=2):
     }}
     """
     
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
             response_mime_type="application/json"
         )
     )
     
+    text = response.text or "{}"
+    
     try:
-        result = json.loads(response.text)
+        result = json.loads(text)
         # Handle cases where it might return a list directly or wrapped in "script"
         if isinstance(result, list):
             return result
         return result.get("script", [])
     except json.JSONDecodeError:
-        raise ValueError("Failed to parse generated script as JSON")
+        # Fallback: try to find JSON blob
+        match = re.search(r'(\{.*\})', text, re.DOTALL)
+        if match:
+            result = json.loads(match.group(1))
+            if isinstance(result, list):
+                return result
+            return result.get("script", [])
+        else:
+            raise ValueError("Failed to parse generated script as JSON")

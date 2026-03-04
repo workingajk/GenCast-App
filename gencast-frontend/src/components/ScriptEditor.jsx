@@ -73,6 +73,7 @@ export const ScriptEditor = ({
                     >
                         <option value="edge">Edge TTS (High Quality)</option>
                         <option value="gtts">gTTS (Standard)</option>
+                        <option value="chatterbox">Chatterbox (Resemble AI)</option>
                     </select>
 
                     <button

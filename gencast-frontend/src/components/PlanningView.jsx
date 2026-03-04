@@ -50,6 +50,26 @@ export const PlanningView = ({
             </div>
 
             <div className="space-y-6">
+
+
+                <button
+                    onClick={onConfirm}
+                    disabled={isGeneratingScript}
+                    className="w-full py-5 bg-primary hover:bg-primary-hover disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-text-muted text-[#0a0c0e] rounded-2xl font-bold text-lg shadow-glow transition-all transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                    {isGeneratingScript ? (
+                        <>
+                            <div className="w-5 h-5 border-[3px] border-[#0a0c0e]/30 border-t-[#0a0c0e] rounded-full animate-spin"></div>
+                            <span className="animate-pulse">Synthesizing Script...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="material-symbols-outlined text-[20px]">edit_note</span>
+                            <span>Generate Script</span>
+                        </>
+                    )}
+                </button>
+
                 <div className="bg-bg-surface p-8 rounded-3xl border border-border-main shadow-xl">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-3 bg-accent/10 rounded-2xl text-accent border border-accent/20">
@@ -85,24 +105,6 @@ export const PlanningView = ({
                         )}
                     </div>
                 </div>
-
-                <button
-                    onClick={onConfirm}
-                    disabled={isGeneratingScript}
-                    className="w-full py-5 bg-primary hover:bg-primary-hover disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-text-muted text-[#0a0c0e] rounded-2xl font-bold text-lg shadow-glow transition-all transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                    {isGeneratingScript ? (
-                        <>
-                            <div className="w-5 h-5 border-[3px] border-[#0a0c0e]/30 border-t-[#0a0c0e] rounded-full animate-spin"></div>
-                            <span className="animate-pulse">Synthesizing Script...</span>
-                        </>
-                    ) : (
-                        <>
-                            <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                            <span>Generate Script</span>
-                        </>
-                    )}
-                </button>
             </div>
         </div>
     );
