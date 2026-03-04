@@ -45,7 +45,7 @@ const PlayerPage = () => {
         }
     };
 
-    const handleSynthesize = async () => {
+    const handleSynthesize = async (selectedModel) => {
         setIsSynthesizing(true);
         try {
             // Save script first
@@ -53,7 +53,7 @@ const PlayerPage = () => {
                 await podcastService.updateScript(id, podcast.script_content);
             }
 
-            const data = await podcastService.generateAudio(id);
+            const data = await podcastService.generateAudio(id, selectedModel);
             // Refresh podcast data to get new audio URL
             setPodcast(prev => ({
                 ...prev,

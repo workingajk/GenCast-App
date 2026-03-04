@@ -45,8 +45,8 @@ const HomePage = () => {
         } catch (e) {
             console.error(e);
             if (e.response && e.response.status === 401) {
-                 navigate('/login');
-                 return;
+                navigate('/login');
+                return;
             }
             setError("Failed to generate plan. Please try again.");
         } finally {
@@ -82,7 +82,7 @@ const HomePage = () => {
         }
     };
 
-    const handleSynthesizeAudio = async () => {
+    const handleSynthesizeAudio = async (selectedModel) => {
         if (!podcastId) return;
         setLoading(true);
         setError(null);
@@ -90,16 +90,16 @@ const HomePage = () => {
         try {
             // First ensure latest script is saved
             await podcastService.updateScript(podcastId, script);
-            
+
             // Trigger TTS
-            const data = await podcastService.generateAudio(podcastId);
-            
+            const data = await podcastService.generateAudio(podcastId, selectedModel);
+
             if (data.audio_url) {
                 // Determine full URL if relative
-                const url = data.audio_url.startsWith('http') 
-                    ? data.audio_url 
+                const url = data.audio_url.startsWith('http')
+                    ? data.audio_url
                     : `${import.meta.env.VITE_API_URL.replace('/api', '')}${data.audio_url}`;
-                
+
                 setAudioUrl(url);
                 setStep('audio');
             } else {
@@ -134,7 +134,7 @@ const HomePage = () => {
                     Research-Based RAG Podcast Generation. Just provide a topic, and we'll handle the rest.
                 </p>
                 {/* Logout button for testing */}
-                <button 
+                <button
                     onClick={() => { authService.logout(); navigate('/login'); }}
                     className="absolute top-4 right-4 text-xs text-text-muted hover:text-red-500"
                 >

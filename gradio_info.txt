@@ -1,0 +1,25 @@
+Client.predict() Usage Info
+---------------------------
+Named API endpoints: 1
+
+ - predict(text_input, audio_prompt_path_input, exaggeration_input, temperature_input, seed_num_input, cfgw_input, vad_trim_input, api_name="/generate_tts_audio") -> output_audio
+    Parameters:
+     - [Textbox] text_input: str (not required, defaults to:   Now let's make my mum's favourite. So three mars bars into the pan. Then we add the tuna and just stir for a bit, just let the chocolate and fish infuse. A sprinkle of olive oil and some tomato ketchup. Now smell that. Oh boy this is going to be incredible.)  
+     - [Audio] audio_prompt_path_input: filepath (not required, defaults to:   handle_file("https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"))  (The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.
+
+Attributes:
+    path: The server file path where the file is stored.
+    url: The normalized server URL pointing to the file.
+    size: The size of the file in bytes.
+    orig_name: The original filename before upload.
+    mime_type: The MIME type of the file.
+    is_stream: Indicates whether the file is a stream.
+    meta: Additional metadata used internally (should not be changed).) 
+     - [Slider] exaggeration_input: float (not required, defaults to:   0.5)  
+     - [Slider] temperature_input: float (not required, defaults to:   0.8)  
+     - [Number] seed_num_input: float (not required, defaults to:   0)  
+     - [Slider] cfgw_input: float (not required, defaults to:   0.5)  
+     - [Checkbox] vad_trim_input: bool (not required, defaults to:   False)  
+    Returns:
+     - [Audio] output_audio: filepath 
+

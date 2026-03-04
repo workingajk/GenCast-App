@@ -141,9 +141,12 @@ class PodcastGenerateAudioView(views.APIView):
         podcast.save()
         
         try:
+            # Get selected model from request
+            model = request.data.get('model', 'edge')
+
             # Run async TTS code in synchronous view
             # Note: For production, this should be a Celery task
-            segments = async_to_sync(synthesize_podcast)(podcast.script_content)
+            segments = async_to_sync(synthesize_podcast)(podcast.script_content, model)
             
             import re
             clean_title = re.sub(r'[^\w\s-]', '', podcast.title[:20]).strip().replace(' ', '_')

@@ -10,6 +10,8 @@ export const ScriptEditor = ({
     isSynthesizing
 }) => {
 
+    const [selectedModel, setSelectedModel] = React.useState('edge');
+
     const updateLine = (id, field, value) => {
         setScript(prev => prev.map(line =>
             line.id === id ? { ...line, [field]: value } : line
@@ -64,8 +66,17 @@ export const ScriptEditor = ({
                         <span className="hidden sm:inline">Export</span>
                     </button>
 
+                    <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="bg-bg-surface border border-border-main text-text-main text-sm rounded-2xl px-4 py-2 outline-none focus:border-primary/50 cursor-pointer h-full py-3"
+                    >
+                        <option value="edge">Edge TTS (High Quality)</option>
+                        <option value="gtts">gTTS (Standard)</option>
+                    </select>
+
                     <button
-                        onClick={onSynthesize}
+                        onClick={() => onSynthesize(selectedModel)}
                         disabled={isSynthesizing}
                         className="px-8 py-3 bg-primary hover:bg-primary-hover disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-text-muted text-[#0a0c0e] rounded-2xl font-bold text-xs uppercase tracking-widest shadow-glow hover:shadow-[0_15px_30px_rgba(0,189,199,0.3)] transition-all flex items-center gap-2"
                     >
@@ -92,8 +103,8 @@ export const ScriptEditor = ({
                             <div className="flex flex-col items-center gap-3 shrink-0 w-28">
                                 <div className={clsx(
                                     "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-105",
-                                    line.speaker.toLowerCase().includes('host') 
-                                        ? 'bg-primary/20 text-primary border border-primary/30' 
+                                    line.speaker.toLowerCase().includes('host')
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
                                         : 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
                                 )}>
                                     <User size={24} />

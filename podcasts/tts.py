@@ -2,6 +2,7 @@ import edge_tts
 import asyncio
 import os
 import io
+from gtts import gTTS
 from django.conf import settings
 
 # Pluggable interface — only this file changes when swapping TTS engines
@@ -12,7 +13,7 @@ SPEAKER_VOICE_MAP = {
     'Speaker 4': 'en-US-DavisNeural',
 }
 
-async def synthesize_line(text: str, voice: str) -> bytes:
+async def synthesize_line_edge(text: str, voice: str) -> bytes:
     """Returns MP3 bytes for a single line using Edge TTS."""
     communicate = edge_tts.Communicate(text, voice)
     mp3_io = io.BytesIO()
@@ -21,25 +22,45 @@ async def synthesize_line(text: str, voice: str) -> bytes:
             mp3_io.write(chunk["data"])
     return mp3_io.getvalue()
 
-async def synthesize_podcast(script):
+async def synthesize_line_gtts(text: str) -> bytes:
+    """Returns MP3 bytes for a single line using gTTS."""
+    mp3_io = io.BytesIO()
+    tts = gTTS(text=text, lang='en')
+    tts.write_to_fp(mp3_io)
+    return mp3_io.getvalue()
+
+async def synthesize_podcast(script, model='edge'):
     """
     Iterates through script lines and synthesizes audio segments.
     Returns a list of (speaker, audio_bytes).
     Actually returns just bytes list based on current usage.
     """
     segments = []
+    # Force some slight variations for gTTS since it doesn't do multiple speakers natively
+    gtts_tlds = {'Host': 'com', 'Guest': 'co.uk', 'Speaker 3': 'com.au'}
+
     for line in script:
         speaker = line.get('speaker', 'Host')
         text = line.get('text', '')
         if not text.strip():
             continue
             
-        voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')
-        
         # Retry logic for network flakiness
         for _ in range(3):
             try:
-                audio_bytes = await synthesize_line(text, voice)
+                if model == 'gtts':
+                    # gTTS implementation
+                    tld = gtts_tlds.get(speaker, 'com')
+                    mp3_io = io.BytesIO()
+                    # Run synchronous gTTS in a thread to keep async interface
+                    tts = gTTS(text=text, lang='en', tld=tld)
+                    tts.write_to_fp(mp3_io)
+                    audio_bytes = mp3_io.getvalue()
+                else:
+                    # Edge TTS implementation
+                    voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')
+                    audio_bytes = await synthesize_line_edge(text, voice)
+                    
                 segments.append(audio_bytes)
                 break
             except Exception as e:
