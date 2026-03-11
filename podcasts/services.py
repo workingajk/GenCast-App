@@ -128,6 +128,20 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
             characteristics_context += f"- {speaker_label}: {char}\n"
         characteristics_context += "\nIMPORTANT: Ensure the dialogue reflects each speaker's distinct personality, knowledge level, role, and background as defined above. Their tone and style must match these characteristics exactly.\n"
     
+    # Predefined list of high-quality verified Edge TTS Voices (en-US only to ensure compatibility)
+    available_voices_context = """
+    Available Voices for Selection:
+    - en-US-GuyNeural (Male, Adult)
+    - en-US-JennyNeural (Female, Adult)
+    - en-US-AriaNeural (Female, Adult)
+    - en-US-AnaNeural (Female, Child, young and bright)
+    - en-US-ChristopherNeural (Male, Adult)
+    - en-US-EricNeural (Male, Adult, deep or older voice)
+    - en-US-MichelleNeural (Female, Adult)
+    - en-US-RogerNeural (Male, Adult)
+    - en-US-SteffanNeural (Male, Adult)
+    """
+
     prompt = f"""
     You are a professional scriptwriter.
     
@@ -138,18 +152,29 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     {source_context}
     
     {characteristics_context}
+    
+    {available_voices_context}
+    
     Task:
     Write a natural, engaging podcast script for {speaker_count} speakers.
-    The speakers should be labeled as "Host", "Guest", "Speaker 3", etc.
+    The speakers should be labeled strictly as "Host", "Guest", "Speaker 3", etc. to match the given characteristics.
     The dialogue should flow naturally, be informative, and follow the provided outline.
     Include approximately 10-15 dialogue turns.
     
+    CRITICAL INSTRUCTION FOR VOICE ACTING:
+    For each line of dialogue, you MUST assign an appropriate `voice` ONLY from the "Available Voices" list above that best matches the speaker's characteristics.
+    You MUST also optionally specify `pitch` and `rate` to accurately reflect their age and energy level if it deviates from a standard adult. 
+    FORMAT RULES FOR PITCH AND RATE:
+    - `pitch` MUST be formatted as "+<number>Hz" or "-<number>Hz" (e.g., "+10Hz", "-5Hz"). 
+    - `rate` MUST be formatted as "+<number>%" or "-<number>%" (e.g., "+5%", "-10%").
+    - If no adjustment is needed, default to "+0Hz" and "+0%".
+
     Return a valid JSON dictionary with a "script" key containing a list of objects.
     Example:
     {{
         "script": [
-            {{ "speaker": "Host", "text": "Welcome to the show!" }},
-            {{ "speaker": "Guest", "text": "Thanks for having me." }}
+            {{ "speaker": "Host", "voice": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%", "text": "Welcome to the show!" }},
+            {{ "speaker": "Guest", "voice": "en-US-AnaNeural", "pitch": "+5Hz", "rate": "+10%", "text": "Thanks for having me, I'm super excited!" }}
         ]
     }}
     """

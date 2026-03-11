@@ -15,9 +15,9 @@ SPEAKER_VOICE_MAP = {
     'Speaker 4': 'en-US-DavisNeural',
 }
 
-async def synthesize_line_edge(text: str, voice: str) -> bytes:
+async def synthesize_line_edge(text: str, voice: str, pitch: str = "+0Hz", rate: str = "+0%") -> bytes:
     """Returns MP3 bytes for a single line using Edge TTS."""
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate)
     mp3_io = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -75,6 +75,10 @@ async def synthesize_podcast(script, model='edge'):
     for line in script:
         speaker = line.get('speaker', 'Host')
         text = line.get('text', '')
+        voice = line.get('voice', SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural'))
+        pitch = line.get('pitch', '+0Hz')
+        rate = line.get('rate', '+0%')
+        
         if not text.strip():
             continue
             
@@ -95,13 +99,13 @@ async def synthesize_podcast(script, model='edge'):
                     audio_bytes = await synthesize_line_chatterbox(text)
                 else:
                     # Edge TTS implementation
-                    voice = SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural')
-                    audio_bytes = await synthesize_line_edge(text, voice)
+                    print(f"DEBUG TTS -> voice: '{voice}', pitch: '{pitch}', rate: '{rate}'")
+                    audio_bytes = await synthesize_line_edge(text, voice, pitch, rate)
                     
                 segments.append(audio_bytes)
                 break
             except Exception as e:
-                print(f"Error synthesizing line: {e}, retrying...")
+                print(f"Error synthesizing line (model: {model}, voice: {voice}, pitch: {pitch}, rate: {rate}): {e}, retrying...")
                 await asyncio.sleep(1)
                 
     return segments
