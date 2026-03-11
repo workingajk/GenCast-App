@@ -91,8 +91,8 @@ export const authService = {
 
 export const podcastService = {
     // Create a new podcast (Draft/Plan)
-    create: async (topic, speakers) => {
-        const response = await api.post('/podcasts/create/', { topic, speakers });
+    create: async (topic, speakers, characteristics = []) => {
+        const response = await api.post('/podcasts/create/', { topic, speakers, characteristics });
         return response.data;
     },
 

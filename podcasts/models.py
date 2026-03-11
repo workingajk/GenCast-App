@@ -17,6 +17,7 @@ class Podcast(models.Model):
     title = models.CharField(max_length=255, blank=True)
     topic = models.TextField()
     speaker_count = models.IntegerField(default=2)
+    speaker_characteristics = models.JSONField(null=True, blank=True)
     outline = models.JSONField(null=True, blank=True)
     sources = models.JSONField(null=True, blank=True)
     script_content = models.JSONField(null=True, blank=True)

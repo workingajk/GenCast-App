@@ -15,7 +15,7 @@ const HomePage = () => {
     const navigate = useNavigate();
 
     // Data
-    const [config, setConfig] = useState({ topic: '', speakers: 2 });
+    const [config, setConfig] = useState({ topic: '', speakers: 2, characteristics: [] });
     const [podcastId, setPodcastId] = useState(null); // Track ID from backend
     const [outline, setOutline] = useState(null);
     const [sources, setSources] = useState([]);
@@ -30,14 +30,14 @@ const HomePage = () => {
     }, [navigate]);
 
     // Handlers
-    const handleGeneratePlan = async (topic, speakers) => {
+    const handleGeneratePlan = async (topic, speakers, characteristics) => {
         setLoading(true);
         setError(null);
-        setConfig({ topic, speakers });
+        setConfig({ topic, speakers, characteristics });
 
         try {
             // Call backend to create podcast plan
-            const data = await podcastService.create(topic, speakers);
+            const data = await podcastService.create(topic, speakers, characteristics);
             setPodcastId(data.id);
             setOutline(data.outline);
             setSources(data.sources || []);

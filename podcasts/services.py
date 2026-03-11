@@ -107,7 +107,7 @@ def generate_plan(topic, speaker_count=2):
         "sources": unique_sources
     }
 
-def generate_script(outline, sources, speaker_count=2):
+def generate_script(outline, sources, speaker_count=2, speaker_characteristics=None):
     """
     Generates a podcast script using Gemini 2.5 Flash with structured JSON output.
     Returns list of { speaker: "Host", text: "..." }
@@ -116,6 +116,17 @@ def generate_script(outline, sources, speaker_count=2):
     
     sources = sources or []
     source_context = "\n".join([f"- {s['title']}: {s['uri']}" for s in sources])
+    
+    characteristics_context = ""
+    if speaker_characteristics and isinstance(speaker_characteristics, list) and len(speaker_characteristics) > 0:
+        characteristics_context = "Speaker Characteristics:\n"
+        for i, char in enumerate(speaker_characteristics):
+            # Assuming labels like Speaker 1, Speaker 2, or generic names
+            speaker_label = f"Speaker {i+1}"
+            if i == 0: speaker_label = "Host"
+            elif i == 1: speaker_label = "Guest"
+            characteristics_context += f"- {speaker_label}: {char}\n"
+        characteristics_context += "\nIMPORTANT: Ensure the dialogue reflects each speaker's distinct personality, knowledge level, role, and background as defined above. Their tone and style must match these characteristics exactly.\n"
     
     prompt = f"""
     You are a professional scriptwriter.
@@ -126,6 +137,7 @@ def generate_script(outline, sources, speaker_count=2):
     Context/Sources:
     {source_context}
     
+    {characteristics_context}
     Task:
     Write a natural, engaging podcast script for {speaker_count} speakers.
     The speakers should be labeled as "Host", "Guest", "Speaker 3", etc.

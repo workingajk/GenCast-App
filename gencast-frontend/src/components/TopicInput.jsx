@@ -4,11 +4,29 @@ import { Mic, Search, Users } from 'lucide-react';
 export const TopicInput = ({ onGenerate, isGenerating }) => {
     const [topic, setTopic] = useState('');
     const [speakers, setSpeakers] = useState(2);
+    const [characteristics, setCharacteristics] = useState(Array(2).fill(''));
+
+    const handleSpeakerChange = (num) => {
+        setSpeakers(num);
+        setCharacteristics(prev => {
+            const newChars = [...prev];
+            if (num > prev.length) {
+                // Add empty strings for new speakers
+                for (let i = prev.length; i < num; i++) {
+                    newChars.push('');
+                }
+            } else {
+                // Truncate to new length
+                newChars.length = num;
+            }
+            return newChars;
+        });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (topic.trim()) {
-            onGenerate(topic, speakers);
+            onGenerate(topic, speakers, characteristics);
         }
     };
 
@@ -47,7 +65,7 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
                                 <button
                                     key={num}
                                     type="button"
-                                    onClick={() => setSpeakers(num)}
+                                    onClick={() => handleSpeakerChange(num)}
                                     className={`flex items-center justify-center gap-2 py-4 rounded-2xl border font-bold transition-all ${speakers === num
                                             ? 'border-primary bg-primary/10 text-primary shadow-glow'
                                             : 'border-border-main bg-bg-main hover:bg-bg-surface text-text-muted hover:text-text-main'
@@ -57,6 +75,35 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
                                     <Users size={18} />
                                     <span>{num}</span>
                                 </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-border-main">
+                        <label className="block text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3 ml-1">Speaker Characteristics</label>
+                        <p className="text-xs text-text-muted ml-1 mb-4">Define personality, role, or background for each speaker.</p>
+                        <div className="space-y-4">
+                            {characteristics.map((char, index) => (
+                                <div key={index} className="relative">
+                                    <label className="block text-xs font-semibold text-text-main mb-2 ml-1">
+                                        {index === 0 ? "Speaker 1 (Host)" : index === 1 ? "Speaker 2 (Guest)" : `Speaker ${index + 1}`}
+                                    </label>
+                                    <textarea
+                                        value={char}
+                                        onChange={(e) => {
+                                            const newChars = [...characteristics];
+                                            newChars[index] = e.target.value;
+                                            setCharacteristics(newChars);
+                                        }}
+                                        maxLength={500}
+                                        placeholder={index === 0 ? "e.g. A 30-year-old male professor who explains clearly." : "e.g. A curious student who asks many questions."}
+                                        className="w-full bg-bg-main px-4 py-3 rounded-xl border border-border-main text-text-main placeholder:text-text-muted/40 focus:border-primary/50 focus:ring-2 focus:ring-primary/5 outline-none transition-all resize-y min-h-[80px]"
+                                        disabled={isGenerating}
+                                    />
+                                    <div className="absolute bottom-3 right-3 text-[10px] font-mono text-text-muted bg-bg-main px-1">
+                                        {char.length}/500
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>

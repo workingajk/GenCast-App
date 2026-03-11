@@ -23,6 +23,7 @@ class PodcastCreateView(views.APIView):
     def post(self, request):
         topic = request.data.get('topic')
         speaker_count = request.data.get('speakers', 2)
+        speaker_characteristics = request.data.get('characteristics', [])
         
         if not topic:
             return Response({"error": "Topic is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -36,6 +37,7 @@ class PodcastCreateView(views.APIView):
                 user=request.user,
                 topic=topic,
                 speaker_count=speaker_count,
+                speaker_characteristics=speaker_characteristics,
                 title=plan_data['outline'].get('title', topic),
                 outline=plan_data['outline'],
                 sources=plan_data['sources'],
@@ -114,7 +116,7 @@ class PodcastGenerateScriptView(views.APIView):
             return Response({"error": "Podcast has no outline. Create one first."}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            script = generate_script(podcast.outline, podcast.sources, podcast.speaker_count)
+            script = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
             podcast.script_content = script
             podcast.status = 'scripted'
             podcast.save()

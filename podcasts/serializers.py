@@ -16,7 +16,7 @@ class PodcastDetailSerializer(serializers.ModelSerializer):
     """Full detail including outline, sources, script"""
     class Meta:
         model = Podcast
-        fields = ['id', 'title', 'topic', 'speaker_count', 'outline',
+        fields = ['id', 'title', 'topic', 'speaker_count', 'speaker_characteristics', 'outline',
                   'sources', 'script_content', 'audio_file', 'status', 'created_at']
         read_only_fields = ['outline', 'sources', 'script_content', 'audio_file', 'status', 'created_at']
 
