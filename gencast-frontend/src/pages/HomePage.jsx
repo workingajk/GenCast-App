@@ -194,6 +194,7 @@ const HomePage = () => {
                         setScript={handleUpdateScript}
                         onSynthesize={handleSynthesizeAudio}
                         isSynthesizing={loading}
+                        sources={sources}
                     />
                 )}
 

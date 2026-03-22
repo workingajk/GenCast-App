@@ -147,8 +147,9 @@ const PlayerPage = () => {
                 </div>
             </header>
 
-            <div className="max-w-4xl mx-auto w-full relative z-10">
-                <div className="text-center mb-16">
+            <div className="max-w-7xl mx-auto w-full relative z-10">
+                <div className="max-w-4xl mx-auto w-full">
+                    <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4 leading-tight text-balance max-w-4xl mx-auto">
                         {podcast.title || podcast.topic}
                     </h1>
@@ -182,6 +183,7 @@ const PlayerPage = () => {
                         </p>
                     </div>
                 )}
+                </div>
 
                 {/* Script Editor */}
                 <div className="mt-8">
@@ -190,6 +192,7 @@ const PlayerPage = () => {
                         setScript={handleUpdateScript}
                         onSynthesize={handleSynthesize}
                         isSynthesizing={isSynthesizing}
+                        sources={podcast.sources || []}
                     />
                 </div>
             </div>

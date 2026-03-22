@@ -157,8 +157,9 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     
     Task:
     Write a natural, engaging podcast script for {speaker_count} speakers.
+    You MUST actively use the Google Search tool to find deep, specific, and up-to-date facts for each of the Key Topics before writing the dialogue about them. Ground the conversation heavily in real-world facts.
     The speakers should be labeled strictly as "Host", "Guest", "Speaker 3", etc. to match the given characteristics.
-    The dialogue should flow naturally, be informative, and follow the provided outline.
+    The dialogue should flow naturally, be highly informative, and follow the provided outline.
     Include approximately 10-15 dialogue turns.
     
     CRITICAL INSTRUCTION FOR VOICE ACTING:
@@ -183,25 +184,50 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
         model='gemini-2.5-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
-            response_mime_type="application/json"
+            tools=[{"google_search": {}}],
         )
     )
     
+    # Extract new grounding metadata (sources)
+    new_sources = []
+    if response.candidates:
+        grounding = getattr(response.candidates[0], 'grounding_metadata', None)
+        if grounding and getattr(grounding, 'grounding_chunks', None):
+            for chunk in grounding.grounding_chunks:
+                if getattr(chunk, 'web', None) and getattr(chunk.web, 'uri', None) and getattr(chunk.web, 'title', None):
+                    new_sources.append({
+                        "title": chunk.web.title,
+                        "uri": chunk.web.uri
+                    })
+                
+    # Deduplicate sources by URI
+    unique_new_sources = []
+    seen_uris = set()
+    for s in new_sources:
+        if s['uri'] not in seen_uris:
+            unique_new_sources.append(s)
+            seen_uris.add(s['uri'])
+            
     text = response.text or "{}"
     
     try:
         result = json.loads(text)
-        # Handle cases where it might return a list directly or wrapped in "script"
         if isinstance(result, list):
-            return result
-        return result.get("script", [])
+            script_data = result
+        else:
+            script_data = result.get("script", [])
     except json.JSONDecodeError:
-        # Fallback: try to find JSON blob
         match = re.search(r'(\{.*\})', text, re.DOTALL)
         if match:
             result = json.loads(match.group(1))
             if isinstance(result, list):
-                return result
-            return result.get("script", [])
+                script_data = result
+            else:
+                script_data = result.get("script", [])
         else:
             raise ValueError("Failed to parse generated script as JSON")
+            
+    return {
+        "script": script_data,
+        "new_sources": unique_new_sources
+    }

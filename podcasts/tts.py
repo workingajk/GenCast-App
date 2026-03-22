@@ -113,15 +113,25 @@ async def synthesize_podcast(script, model='edge'):
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
+from pydub import AudioSegment
+
 def concatenate_and_save(segments, output_filename):
     """
-    Concatenates MP3 segments and saves them using the default storage.
+    Concatenates MP3 segments using Pydub and saves them using the default storage.
     """
     if not segments:
         return None
 
-    # Join the MP3 chunks into one byte-stream
-    audio_data = b"".join(segments)
+    # Load each bytes segment into a Pydub AudioSegment and concatenate them properly
+    combined = AudioSegment.empty()
+    for seg_bytes in segments:
+        audio_chunk = AudioSegment.from_file(io.BytesIO(seg_bytes), format="mp3")
+        combined += audio_chunk
+    
+    # Export the combined audio to a bytes stream
+    out_io = io.BytesIO()
+    combined.export(out_io, format="mp3")
+    audio_data = out_io.getvalue()
     
     # Path inside the storage (media root)
     filename = f"podcasts/{output_filename}"

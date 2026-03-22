@@ -2,6 +2,7 @@ from rest_framework import generics, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+import time
 from .models import Podcast
 from .serializers import (
     PodcastListSerializer, 
@@ -30,7 +31,9 @@ class PodcastCreateView(views.APIView):
             
         try:
             # 1. Generate Plan (Gemini + Search)
+            start_time = time.time()
             plan_data = generate_plan(topic, speaker_count)
+            planning_latency = time.time() - start_time
             
             # 2. Create Podcast Record
             podcast = Podcast.objects.create(
@@ -41,7 +44,8 @@ class PodcastCreateView(views.APIView):
                 title=plan_data['outline'].get('title', topic),
                 outline=plan_data['outline'],
                 sources=plan_data['sources'],
-                status='planned'
+                status='planned',
+                planning_latency=round(planning_latency, 2)
             )
             
             serializer = PodcastDetailSerializer(podcast)
@@ -116,12 +120,29 @@ class PodcastGenerateScriptView(views.APIView):
             return Response({"error": "Podcast has no outline. Create one first."}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            script = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
-            podcast.script_content = script
+            start_time = time.time()
+            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
+            podcast.scripting_latency = round(time.time() - start_time, 2)
+            
+            podcast.script_content = result["script"]
+            
+            # Merge new sources found during script generation
+            existing_sources = podcast.sources or []
+            existing_uris = {s.get('uri') for s in existing_sources if s.get('uri')}
+            
+            for new_s in result.get("new_sources", []):
+                if new_s.get('uri') not in existing_uris:
+                    existing_sources.append(new_s)
+                    existing_uris.add(new_s.get('uri'))
+                    
+            podcast.sources = existing_sources
             podcast.status = 'scripted'
             podcast.save()
             
-            return Response({"script_content": script})
+            return Response({
+                "script_content": podcast.script_content,
+                "sources": podcast.sources
+            })
         except Exception as e:
             import traceback; traceback.print_exc()
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -146,6 +167,7 @@ class PodcastGenerateAudioView(views.APIView):
             # Get selected model from request
             model = request.data.get('model', 'edge')
 
+            start_time = time.time()
             # Run async TTS code in synchronous view
             # Note: For production, this should be a Celery task
             segments = async_to_sync(synthesize_podcast)(podcast.script_content, model)
@@ -155,6 +177,7 @@ class PodcastGenerateAudioView(views.APIView):
             filename = f"{podcast.id}_{clean_title}.mp3"
             # Concatenate and save to storage (local or S3)
             saved_name = concatenate_and_save(segments, filename)
+            podcast.audio_latency = round(time.time() - start_time, 2)
             
             # Update podcast record with the saved storage path
             podcast.audio_file.name = saved_name
