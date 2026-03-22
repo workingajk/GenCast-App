@@ -61,68 +61,67 @@ export const AudioPlayer = ({ audioUrl, onReset }) => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto text-center space-y-10 text-text-main transition-colors duration-300">
+        <div className="max-w-2xl mx-auto text-center space-y-12 text-text-main transition-colors duration-300">
             <audio ref={audioRef} src={audioUrl} preload="metadata" />
             
-            <div className="bg-primary/5 text-primary p-10 rounded-[3rem] border border-primary/20 flex flex-col items-center gap-6 shadow-glow relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
-                <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center border border-primary/20 shadow-glow group-hover:scale-110 transition-transform duration-500">
-                    <CheckCircle size={40} className="drop-shadow-glow" />
+            <div className="bg-white dark:bg-bg-surface p-12 rounded-[3rem] border border-slate-200 dark:border-white/5 flex flex-col items-center gap-8 shadow-xl-saas relative overflow-hidden transition-all duration-300">
+                <div className="size-24 bg-primary/20 text-primary rounded-[2rem] flex items-center justify-center shadow-glow animate-bounce-subtle">
+                    <CheckCircle size={48} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <h2 className="text-3xl font-bold dark:text-white font-heading mb-2">Podcast Synthesized!</h2>
-                    <p className="text-text-muted font-medium tracking-wide">Your episode is ready for the world.</p>
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Podcast Mastered!</h2>
+                    <p className="text-slate-500 dark:text-text-muted font-medium max-w-[280px] mx-auto text-sm leading-relaxed">Your studio-quality episode is finalized and ready for the world to hear.</p>
                 </div>
             </div>
 
-            <div className="bg-bg-surface p-10 rounded-[3rem] border border-border-main relative overflow-hidden shadow-xl dark:shadow-2xl transition-all duration-300">
+            <div className="bg-white dark:bg-bg-surface p-10 py-12 rounded-[3rem] border border-slate-200 dark:border-white/5 relative overflow-hidden shadow-xl-saas transition-all duration-300">
                 {/* Visualizer bg (simulated) */}
-                <div className="absolute inset-x-0 bottom-0 top-1/2 flex items-end justify-center opacity-[0.05] gap-2 pointer-events-none px-4">
-                    {[...Array(30)].map((_, i) => (
-                        <div key={i} className="w-full max-w-[8px] bg-primary rounded-t-full" style={{ height: `${Math.random() * 80 + 20}%` }}></div>
+                <div className="absolute inset-x-0 bottom-0 top-1/2 flex items-end justify-center opacity-[0.05] gap-1.5 pointer-events-none px-6">
+                    {[...Array(40)].map((_, i) => (
+                        <div key={i} className="w-full max-w-[4px] bg-primary rounded-full" style={{ height: `${Math.random() * 80 + 20}%` }}></div>
                     ))}
                 </div>
 
-                <div className="relative z-10 space-y-8">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-text-muted tracking-[0.2em] uppercase">
-                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(audioRef.current?.currentTime)}</span>
-                        <span className="bg-primary/5 px-3 py-1 rounded-full">{formatTime(audioRef.current?.duration)}</span>
+                <div className="relative z-10 space-y-10">
+                    <div className="flex items-center justify-between text-[11px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase px-2">
+                        <span className="bg-slate-50 dark:bg-bg-main px-4 py-2 rounded-xl border border-slate-100 dark:border-white/5 shadow-soft">{formatTime(audioRef.current?.currentTime)}</span>
+                        <span className="bg-slate-50 dark:bg-bg-main px-4 py-2 rounded-xl border border-slate-100 dark:border-white/5 shadow-soft">{formatTime(audioRef.current?.duration)}</span>
                     </div>
 
                     <div 
-                        className="h-2.5 bg-bg-main rounded-full overflow-hidden relative border border-border-main group/progress cursor-pointer"
+                        className="h-3 bg-slate-100 dark:bg-bg-main rounded-full overflow-hidden relative cursor-pointer group shadow-inner"
                         onClick={handleSeek}
                     >
                         <div
-                            className="h-full bg-gradient-to-r from-primary/50 to-primary transition-all duration-100 ease-linear shadow-glow"
+                            className="h-full bg-primary rounded-full transition-all duration-100 ease-linear shadow-glow"
                             style={{ width: `${progress}%` }}
                         ></div>
-                        <div className="absolute top-1/2 -translate-y-1/2 left-0 h-4 w-4 bg-white dark:bg-primary rounded-full opacity-0 group-hover/progress:opacity-100 shadow-glow transition-opacity" style={{ left: `calc(${progress}% - 8px)` }}></div>
+                        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 size-4 bg-white border-2 border-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ left: `${progress}%` }}></div>
                     </div>
 
                     <div className="flex items-center justify-center gap-10">
                         <button
                             onClick={onReset}
-                            className="p-4 text-text-muted hover:text-text-main hover:bg-primary/5 rounded-2xl transition-all"
+                            className="p-4 rounded-2xl text-slate-400 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-soft active:scale-90"
                             title="Restart"
                         >
-                            <RotateCcw size={28} />
+                            <RotateCcw size={32} />
                         </button>
 
                         <button
                             onClick={togglePlay}
-                            className="w-24 h-24 bg-primary hover:bg-primary-hover text-[#0a0c0e] rounded-[2.5rem] flex items-center justify-center shadow-glow hover:shadow-[0_20px_50px_rgba(0,189,199,0.4)] transition-all transform hover:-translate-y-1 active:scale-95"
+                            className="size-28 bg-primary hover:bg-primary-hover text-[#0a0c0e] rounded-[2.5rem] flex items-center justify-center shadow-glow hover:shadow-[0_20px_40px_rgba(0,240,255,0.5)] transition-all transform active:scale-95"
                         >
-                            {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
+                            {isPlaying ? <Pause size={48} fill="currentColor" /> : <Play size={48} fill="currentColor" className="ml-2" />}
                         </button>
 
                         <a
                             href={audioUrl}
                             download="podcast.mp3"
-                            className="p-4 text-text-muted hover:text-text-main hover:bg-primary/5 rounded-2xl transition-all flex items-center justify-center"
+                            className="p-4 rounded-2xl text-slate-400 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-soft flex items-center justify-center active:scale-90"
                             title="Download Audio"
                         >
-                            <Download size={28} />
+                            <Download size={32} />
                         </a>
                     </div>
                 </div>
@@ -130,9 +129,11 @@ export const AudioPlayer = ({ audioUrl, onReset }) => {
 
             <button
                 onClick={onReset}
-                className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary hover:text-primary-hover transition-colors border-b border-primary/20 hover:border-primary-hover pb-1"
+                className="group inline-flex items-center gap-3 text-xs font-black uppercase tracking-[0.25em] text-slate-400 hover:text-primary transition-all pb-2 px-1 relative"
             >
                 Start New Project
+                <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
             </button>
         </div>
     );

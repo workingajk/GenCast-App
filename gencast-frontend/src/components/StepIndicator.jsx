@@ -15,9 +15,9 @@ export const StepIndicator = ({ currentStep }) => {
         <div className="w-full max-w-4xl mx-auto mb-8 px-4">
             <div className="relative flex justify-between">
                 {/* Connecting Line */}
-                <div className="absolute top-1/2 left-0 w-full h-1 bg-white/5 -z-10 -translate-y-1/2 rounded-full"></div>
+                <div className="absolute top-6 left-0 w-full h-2 bg-black/10 dark:bg-border-main -z-10 -translate-y-1/2"></div>
                 <div
-                    className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-primary/50 to-primary -z-10 -translate-y-1/2 rounded-full transition-all duration-500 shadow-[0_0_15px_rgba(0,189,199,0.3)]"
+                    className="absolute top-6 left-0 h-2 bg-primary border-y-2 border-r-2 border-[#0a0c0e] dark:border-primary -z-10 -translate-y-1/2 transition-all duration-500"
                     style={{ width: `${(currentIdx / (steps.length - 1)) * 100}%` }}
                 ></div>
 
@@ -25,14 +25,14 @@ export const StepIndicator = ({ currentStep }) => {
                     const isActive = idx <= currentIdx;
                     const isCurrent = idx === currentIdx;
                     return (
-                        <div key={step.id} className="flex flex-col items-center gap-3 bg-bg-main px-2 relative z-10 transition-colors duration-300">
+                        <div key={step.id} className="flex flex-col items-center gap-3 relative z-10 transition-colors duration-300">
                             <div
                                 className={clsx(
-                                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300",
+                                    "w-12 h-12 flex items-center justify-center text-sm font-black border-4 transition-all duration-300",
                                     isActive 
-                                        ? "bg-primary border-primary text-[#0a0c0e] shadow-glow" 
-                                        : "bg-bg-main border-border-main text-text-muted",
-                                    isCurrent && "ring-4 ring-primary/20 scale-110"
+                                        ? "bg-primary border-[#0a0c0e] text-[#0a0c0e] shadow-[4px_4px_0px_#0a0c0e] dark:shadow-[4px_4px_0px_#00f0ff]" 
+                                        : "bg-white dark:bg-bg-main border-[#0a0c0e] dark:border-border-main text-[#0a0c0e]/50 dark:text-text-muted shadow-[4px_4px_0px_rgba(10,12,14,0.1)] dark:shadow-[4px_4px_0px_rgba(0,0,0,1)]",
+                                    isCurrent && "scale-110 -translate-y-1 bg-[#00f0ff]"
                                 )}
                             >
                                 {idx + 1}

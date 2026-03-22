@@ -21,6 +21,13 @@ const PlayerPage = () => {
         try {
             setLoading(true);
             const data = await podcastService.get(id);
+            // Ensure every script line has a unique ID for the editor
+            if (data.script_content && Array.isArray(data.script_content)) {
+                data.script_content = data.script_content.map(line => ({
+                    ...line,
+                    id: line.id || Math.random().toString(36).substr(2, 9)
+                }));
+            }
             setPodcast(data);
         } catch (e) {
             console.error("Failed to load podcast", e);
@@ -102,20 +109,23 @@ const PlayerPage = () => {
     }
 
     return (
-        <div className="bg-bg-main text-text-main font-display min-h-screen w-full flex flex-col transition-colors duration-500 relative pb-20 overflow-y-auto custom-scrollbar">
-            <div className="absolute inset-x-0 top-0 h-[40vh] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
+        <div className="w-full flex flex-col relative">
+            <div className="absolute inset-x-0 top-0 h-[40vh] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none -mx-6 md:-mx-12 -mt-12 opacity-50"></div>
 
-            <header className="max-w-6xl mx-auto w-full p-6 flex items-center justify-between relative z-10">
+            <header className="max-w-6xl mx-auto w-full pb-6 flex items-center justify-between relative z-10 border-b border-slate-100 dark:border-white/5 mb-8">
                 <button
                     onClick={() => navigate('/')}
-                    className="text-text-muted hover:text-primary transition-colors flex items-center gap-2 text-sm font-bold uppercase tracking-widest"
+                    className="text-slate-500 dark:text-text-muted hover:text-primary transition-colors flex items-center gap-2 text-sm font-bold group"
                 >
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    Back
+                    <div className="p-2 bg-slate-50 dark:bg-bg-surface rounded-xl border border-slate-100 dark:border-white/5 group-hover:border-primary/30 transition-colors">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                    </div>
+                    Back to Projects
                 </button>
                 <div className="flex items-center gap-4">
-                    <div className="px-3 py-1 rounded-full bg-bg-surface border border-border-main text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                        {podcast.status}
+                    <div className="px-4 py-1.5 bg-slate-50 dark:bg-bg-surface border border-slate-200 dark:border-white/10 rounded-full text-xs font-bold text-slate-600 dark:text-text-muted flex items-center gap-2 shadow-soft">
+                        <span className={`size-2 rounded-full ${podcast.status === 'completed' ? 'bg-primary shadow-glow' : 'bg-amber-500 animate-pulse'}`}></span>
+                        Status: <span className="capitalize">{podcast.status}</span>
                     </div>
                     <button
                         onClick={async () => {
@@ -129,19 +139,24 @@ const PlayerPage = () => {
                                 }
                             }
                         }}
-                        className="p-1.5 flex items-center justify-center rounded-full text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors shadow-sm"
+                        className="p-2.5 flex items-center justify-center bg-slate-50 dark:bg-bg-surface border border-slate-200 dark:border-white/10 rounded-xl text-slate-400 hover:text-red-500 hover:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shadow-soft group"
                         title="Delete Podcast"
                     >
-                        <span className="material-symbols-outlined block text-[18px]">delete</span>
+                        <span className="material-symbols-outlined block text-[20px] group-active:scale-95 transition-transform">delete</span>
                     </button>
                 </div>
             </header>
 
-            <div className="max-w-4xl mx-auto w-full relative z-10 px-4">
-                <div className="text-center mb-12">
-                    <h1 className="text-3xl md:text-5xl font-black dark:text-white tracking-tighter mb-4 font-heading">{podcast.title || podcast.topic}</h1>
-                    <p className="text-lg text-text-muted font-bold tracking-tight">
-                        Generated Podcast • {new Date(podcast.created_at).toLocaleDateString()}
+            <div className="max-w-4xl mx-auto w-full relative z-10">
+                <div className="text-center mb-16">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4 leading-tight text-balance max-w-4xl mx-auto">
+                        {podcast.title || podcast.topic}
+                    </h1>
+                    <div className="h-1.5 w-24 bg-primary/20 mx-auto rounded-full mb-6">
+                        <div className="h-full w-1/3 bg-primary rounded-full"></div>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 dark:text-text-muted uppercase tracking-widest">
+                        Generated • {new Date(podcast.created_at).toLocaleDateString()}
                     </p>
                 </div>
 
@@ -154,8 +169,17 @@ const PlayerPage = () => {
                         />
                     </div>
                 ) : (
-                    <div className="text-center mb-12 p-8 bg-bg-surface rounded-[2rem] border border-border-main border-dashed opacity-50">
-                        <p className="text-text-muted font-bold uppercase tracking-widest text-sm">No Audio Generated Yet</p>
+                    <div className="text-center mb-16 p-12 bg-slate-50 dark:bg-bg-main border border-slate-200 dark:border-white/10 border-dashed rounded-[2.5rem] shadow-none flex flex-col items-center justify-center transition-colors">
+                        <div className="p-4 bg-slate-200 dark:bg-slate-800 rounded-2xl text-slate-500 mx-auto mb-5 border border-slate-300 dark:border-white/5">
+                             {isSynthesizing ? (
+                                 <Loader2 className="animate-spin text-primary" size={28} />
+                             ) : (
+                                 <span className="material-symbols-outlined text-[28px]">graphic_eq</span>
+                             )}
+                        </div>
+                        <p className="text-slate-500 dark:text-text-muted font-bold tracking-wide">
+                            {isSynthesizing ? 'Synthesizing Audio...' : 'Audio not generated'}
+                        </p>
                     </div>
                 )}
 

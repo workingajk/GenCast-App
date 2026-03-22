@@ -9,7 +9,7 @@ export default {
     extend: {
       colors: {
         // From Screen 1
-        "primary": "#00f0ff",
+        "primary": "#00f0ff", // Soft Cyan
         "primary-hover": "#00d7e6",
         "bg-deep": "#0a0c0e",
         "bg-surface": "#12171d",
@@ -32,20 +32,20 @@ export default {
         "neon-glow": "rgba(57, 255, 20, 0.4)",
       },
       fontFamily: {
-        "display": ["Manrope", "sans-serif"],
-        "heading": ["Space Grotesk", "sans-serif"],
-        "mono": ["Space Grotesk", "monospace"],
+        "display": ["Outfit", "sans-serif"],
+        "heading": ["Outfit", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        "glow": "0 0 20px rgba(0, 240, 255, 0.12)",
-        "inner-subtle": "inset 0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+        "glow": "0 0 20px rgba(0, 240, 255, 0.3)",
+        "soft": "0 4px 20px rgba(0, 0, 0, 0.05)",
+        "xl-saas": "0 20px 40px rgba(0, 0, 0, 0.1)",
+        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.1)",
       },
       borderRadius: {
-        "DEFAULT": "0.25rem",
-        "lg": "0.5rem",
-        "xl": "0.75rem",
-        "2xl": "1rem",
-        "full": "9999px"
+        "3xl": "1.5rem",
+        "4xl": "2rem",
+        "5xl": "2.5rem",
       },
     },
   },

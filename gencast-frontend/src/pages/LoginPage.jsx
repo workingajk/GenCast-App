@@ -26,41 +26,31 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex bg-[#09090b] text-white">
-            {/* Left Side - Image/Branding */}
-            <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-black">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-black/60 z-10" />
-                <img 
-                    src="/auth-layout.jpg" // Placeholder or need to add an asset
-                    alt="Studio" 
-                    className="w-full h-full object-cover opacity-50"
-                    onError={(e) => {e.target.style.display='none'}} 
-                />
-                <div className="absolute bottom-0 left-0 p-12 z-20">
-                    <h1 className="text-4xl font-bold font-heading mb-4">GenCast</h1>
-                    <p className="text-xl text-gray-300 max-w-md">
-                        Turn your ideas into studio-quality podcasts with the power of AI.
-                    </p>
-                </div>
-            </div>
-
-            {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-                <div className="w-full max-w-md space-y-8">
-                    <div className="text-center lg:text-left">
-                        <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
-                        <p className="mt-2 text-sm text-gray-400">
-                            Don't have an account?{' '}
-                            <Link to="/register" className="font-medium text-indigo-400 hover:text-indigo-300">
-                                Sign up
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-bg-main text-text-main relative overflow-hidden transition-colors duration-500 font-sans">
+            {/* Ambient Background */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl aspect-square bg-gradient-to-b from-primary/5 to-transparent rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+            
+            <div className="w-full max-w-[540px] p-6 relative z-10">
+                <div className="bg-white dark:bg-bg-surface rounded-[2.5rem] border border-slate-200 dark:border-white/5 p-10 md:p-14 shadow-xl-saas relative overflow-hidden transition-all duration-300">
+                    <div className="absolute top-0 right-0 p-8">
+                        <div className="size-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black shadow-glow border border-primary/20">
+                            GC
+                        </div>
+                    </div>
+                    <div className="mb-12">
+                        <h2 className="text-5xl font-black tracking-tight text-slate-900 dark:text-white mb-4">Welcome back</h2>
+                        <p className="text-sm font-medium text-slate-500 dark:text-text-muted">
+                            New to GenCast?{' '}
+                            <Link to="/register" className="text-primary hover:text-primary-hover font-bold decoration-primary/30 underline-offset-4 underline">
+                                Create an account
                             </Link>
                         </p>
                     </div>
 
-                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                        <div className="space-y-4">
+                    <form className="space-y-8" onSubmit={handleSubmit}>
+                        <div className="space-y-6">
                             <div>
-                                <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+                                <label htmlFor="username" className="block text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3 ml-1">
                                     Username
                                 </label>
                                 <input
@@ -68,14 +58,14 @@ const LoginPage = () => {
                                     name="username"
                                     type="text"
                                     required
-                                    className="mt-1 block w-full rounded-md bg-[#27272a] border border-gray-700 text-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm placeholder-gray-500"
-                                    placeholder="Enter your username"
+                                    className="w-full bg-slate-50 dark:bg-bg-main border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white px-6 py-4.5 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                    placeholder="your_username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                                <label htmlFor="password" className="block text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3 ml-1">
                                     Password
                                 </label>
                                 <input
@@ -83,7 +73,7 @@ const LoginPage = () => {
                                     name="password"
                                     type="password"
                                     required
-                                    className="mt-1 block w-full rounded-md bg-[#27272a] border border-gray-700 text-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm placeholder-gray-500"
+                                    className="w-full bg-slate-50 dark:bg-bg-main border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white px-6 py-4.5 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -92,18 +82,17 @@ const LoginPage = () => {
                         </div>
 
                         {error && (
-                            <div className="text-red-400 text-sm text-center bg-red-900/20 p-2 rounded-md border border-red-900/50">
+                            <div className="text-white text-xs font-bold bg-red-500/90 p-4 rounded-xl shadow-lg animate-shake">
                                 {error}
                             </div>
                         )}
-
-                        <div>
+                        <div className="pt-2">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="w-full py-5 bg-primary hover:bg-primary-hover text-[#0a0c0e] transition-all rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-glow hover:shadow-[0_15px_30px_rgba(0,240,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                             >
-                                {loading ? 'Signing in...' : 'Sign in'}
+                                {loading ? 'Accessing Securely...' : 'Enter GenCast'}
                             </button>
                         </div>
                     </form>

@@ -64,7 +64,17 @@ const HomePage = () => {
         try {
             // Trigger backend script generation
             const data = await podcastService.generateScript(podcastId);
-            setScript(data.script_content);
+            
+            // Ensure every script line has a unique ID for the editor
+            let generatedScript = data.script_content || [];
+            if (Array.isArray(generatedScript)) {
+                generatedScript = generatedScript.map(line => ({
+                    ...line,
+                    id: line.id || Math.random().toString(36).substr(2, 9)
+                }));
+            }
+            
+            setScript(generatedScript);
             setStep('scripting');
         } catch (e) {
             console.error(e);
@@ -126,27 +136,37 @@ const HomePage = () => {
     };
 
     return (
-        <div className="flex flex-col items-center w-full min-h-screen pb-24 bg-bg-main text-text-main relative overflow-hidden transition-colors duration-500">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,189,199,0.08),transparent_50%)] pointer-events-none"></div>
+        <div className="flex flex-col items-center w-full min-h-screen pb-24 bg-slate-50 dark:bg-bg-main text-text-main relative overflow-x-hidden transition-colors duration-500 selection:bg-primary/20">
+            {/* Soft Ambient Background */}
+            <div className="absolute inset-0 bg-soft-bg opacity-40 pointer-events-none"></div>
+            
             <button 
                 onClick={toggleTheme}
-                className="absolute top-4 right-4 flex items-center justify-center size-10 rounded-full bg-primary text-[#0a0c0e] hover:bg-primary-hover transition-all border border-primary/20 shadow-glow z-40"
+                className="absolute top-6 right-6 flex items-center justify-center size-12 bg-white dark:bg-bg-surface text-text-main hover:text-primary transition-all rounded-full shadow-soft hover:shadow-xl active:scale-95 z-40 border border-slate-200 dark:border-white/5"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-                <span className="material-symbols-outlined text-[20px] font-bold transition-transform duration-500 scale-100 rotate-0">
+                <span className="material-symbols-outlined text-[20px] transition-transform duration-500">
                     {theme === 'dark' ? 'light_mode' : 'dark_mode'}
                 </span>
             </button>
-            <header className="mb-12 text-center relative z-10 pt-4">
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight font-heading mb-4 neon-text-glow dark:text-white">
+
+            <header className="mb-20 text-center relative z-10 pt-16 flex flex-col items-center w-full max-w-4xl px-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-8">
+                    <span className="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                    AI Podcast Engine
+                </div>
+                <h1 className="text-6xl md:text-8xl font-black tracking-tight dark:text-white text-slate-900 mb-6">
                     Gen<span className="text-primary">Cast</span>
                 </h1>
-                <p className="text-text-muted font-medium max-w-xl mx-auto leading-relaxed">
-                    Research-Based RAG Podcast Generation. Just provide a topic, and we'll handle the rest.
+                <p className="text-slate-500 dark:text-text-muted text-lg md:text-xl max-w-2xl font-medium leading-relaxed">
+                    Create studio-quality podcasts from any topic using specialized AI agents. 
+                    Research, script, and synthesize in minutes.
                 </p>
             </header>
 
-            <StepIndicator currentStep={step} />
+            <div className="relative z-10 w-full flex justify-center mb-8">
+                <StepIndicator currentStep={step} />
+            </div>
 
             <main className="w-full max-w-6xl px-4">
                 {error && (

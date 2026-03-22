@@ -70,24 +70,24 @@ const Sidebar = () => {
     return (
         <aside
             className={clsx(
-                "bg-[#000000] flex flex-col h-screen text-[#ECECF1] relative z-20 transition-all duration-300 ease-in-out border-r border-white/10",
-                isCollapsed ? "w-[80px]" : "w-[260px]"
+                "bg-slate-950 flex flex-col h-screen text-slate-300 relative z-20 transition-all duration-300 ease-in-out border-r border-white/5",
+                isCollapsed ? "w-[80px]" : "w-[280px]"
             )}
         >
             {/* Header / Branding */}
-            <div className={clsx("px-4 py-3 mb-2 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+            <div className={clsx("px-6 py-8 flex items-center transition-all", isCollapsed ? "justify-center" : "justify-between")}>
                 {!isCollapsed && (
-                    <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-sm bg-indigo-500 flex items-center justify-center text-white font-bold text-xs">
+                    <div className="flex items-center gap-3">
+                        <div className="size-10 bg-primary/10 flex items-center justify-center text-primary font-black rounded-xl border border-primary/20 shadow-glow">
                             GC
                         </div>
-                        <span className="text-[16px] font-bold text-white tracking-tight">GenCast</span>
+                        <span className="text-xl font-bold tracking-tight text-white">GenCast</span>
                     </div>
                 )}
 
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-2 hover:bg-[#2A2B32] rounded-md transition-colors text-white/70 hover:text-white"
+                    className="size-8 flex items-center justify-center rounded-lg hover:bg-white/5 hover:text-white transition-all text-slate-500"
                 >
                     <span className="material-symbols-outlined text-[20px]">
                         {isCollapsed ? 'dock_to_right' : 'dock_to_left'}
@@ -96,26 +96,26 @@ const Sidebar = () => {
             </div>
 
             {/* New Podcast Button */}
-            <div className="px-3 mb-4">
+            <div className="px-4 mb-8">
                 <Link
                     to="/"
                     className={clsx(
-                        "flex items-center gap-2 py-3 rounded-md hover:bg-[#2A2B32] transition-colors border border-white/20 cursor-pointer group",
-                        isCollapsed ? "justify-center px-0" : "px-3"
+                        "flex items-center gap-3 py-3.5 bg-primary text-[#0a0c0e] hover:bg-white transition-all rounded-2xl shadow-glow hover:shadow-[0_10px_30px_rgba(0,240,255,0.3)] group active:scale-[0.98]",
+                        isCollapsed ? "justify-center px-0" : "px-5"
                     )}
                 >
-                    <span className="material-symbols-outlined text-[18px] text-white group-hover:text-white transition-colors">add_circle</span>
-                    {!isCollapsed && <span className="text-[14px] flex-1 text-left text-white">New Podcast</span>}
+                    <span className="material-symbols-outlined text-[24px]">add_circle</span>
+                    {!isCollapsed && <span className="text-sm font-bold tracking-tight">New Episode</span>}
                 </Link>
             </div>
 
             {/* History List */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
                 {!isCollapsed && (
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-8">
                         {historyGroups.map((group) => (
                             <div key={group.label}>
-                                <div className="px-3 text-[12px] font-medium text-[#c5c5d0] mb-2">{group.label}</div>
+                                <div className="px-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">{group.label}</div>
                                 <div className="flex flex-col gap-1">
                                     {group.items.map((item) => (
                                         <div key={item.id} className="relative w-full group/item">
@@ -123,10 +123,15 @@ const Sidebar = () => {
                                                 onClick={() => {
                                                     navigate(`/podcast/${item.id}`);
                                                 }}
-                                                className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-[#2A2B32] transition-colors overflow-hidden w-full text-left pr-10"
+                                                className={clsx(
+                                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all overflow-hidden w-full text-left pr-10",
+                                                    location.pathname === `/podcast/${item.id}`
+                                                        ? "bg-white/10 text-white shadow-sm"
+                                                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                                                )}
                                             >
-                                                <span className={clsx("size-2 rounded-full flex-shrink-0", item.status === 'completed' ? 'bg-green-500' : 'bg-gray-500')}></span>
-                                                <span className="text-[14px] truncate flex-1 text-[#ECECF1] group-hover/item:text-white">
+                                                <div className={clsx("size-1.5 rounded-full shrink-0", item.status === 'completed' ? 'bg-primary' : 'bg-slate-700')}></div>
+                                                <span className="text-sm font-medium truncate flex-1 tracking-tight">
                                                     {item.title || item.topic}
                                                 </span>
                                             </button>
@@ -146,7 +151,7 @@ const Sidebar = () => {
                                                         }
                                                     }
                                                 }}
-                                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-white/40 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/item:opacity-100 transition-all flex items-center justify-center"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-red-500/80 opacity-0 group-hover/item:opacity-100 transition-all flex items-center justify-center z-10"
                                                 title="Delete Podcast"
                                             >
                                                 <span className="material-symbols-outlined text-[16px] block">delete</span>
@@ -157,23 +162,23 @@ const Sidebar = () => {
                             </div>
                         ))}
                         {historyGroups.length === 0 && (
-                            <div className="text-center text-xs text-white/30 py-4">No history yet</div>
+                            <div className="text-center text-xs text-slate-600 py-4 italic">No history yet</div>
                         )}
                     </div>
                 )}
             </div>
 
             {/* Footer / Settings */}
-            <div className="p-2 border-t border-white/10">
+            <div className="p-4 border-t border-white/5">
                 <button
                     onClick={handleLogout}
                     className={clsx(
-                        "flex items-center gap-3 py-3 w-full rounded-md hover:bg-[#2A2B32] transition-colors text-left group",
-                        isCollapsed ? "justify-center px-0" : "px-3"
+                        "flex items-center gap-3 py-3.5 w-full rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all font-medium text-sm group",
+                        isCollapsed ? "justify-center px-0" : "px-4"
                     )}
                 >
-                    <span className="material-symbols-outlined text-[20px] text-white/70 group-hover:text-red-400">logout</span>
-                    {!isCollapsed && <span className="text-[14px] text-[#ECECF1] group-hover:text-red-400">Log out</span>}
+                    <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">logout</span>
+                    {!isCollapsed && <span className="flex-1 text-left">Log out</span>}
                 </button>
             </div>
         </aside>
