@@ -64,51 +64,49 @@ async def synthesize_line_chatterbox(text: str) -> bytes:
 
 async def synthesize_podcast(script, model='edge'):
     """
-    Iterates through script lines and synthesizes audio segments.
-    Returns a list of (speaker, audio_bytes).
-    Actually returns just bytes list based on current usage.
+    Synthesizes all script lines concurrently using asyncio.gather.
+    Results are returned in the original script order (gather preserves order).
     """
-    segments = []
-    # Force some slight variations for gTTS since it doesn't do multiple speakers natively
     gtts_tlds = {'Host': 'com', 'Guest': 'co.uk', 'Speaker 3': 'com.au'}
 
-    for line in script:
+    async def synthesize_line(line):
         speaker = line.get('speaker', 'Host')
         text = line.get('text', '')
         voice = line.get('voice', SPEAKER_VOICE_MAP.get(speaker, 'en-US-GuyNeural'))
         pitch = line.get('pitch', '+0Hz')
         rate = line.get('rate', '+0%')
-        
+
         if not text.strip():
-            continue
-            
-        # Retry logic for network flakiness
-        for _ in range(3):
+            return None
+
+        for attempt in range(3):
             try:
                 if model == 'gtts':
-                    # gTTS implementation
                     tld = gtts_tlds.get(speaker, 'com')
                     mp3_io = io.BytesIO()
                     def _run_gtts_tld():
                         tts = gTTS(text=text, lang='en', tld=tld)
                         tts.write_to_fp(mp3_io)
                     await asyncio.to_thread(_run_gtts_tld)
-                    audio_bytes = mp3_io.getvalue()
+                    return mp3_io.getvalue()
                 elif model == 'chatterbox':
-                    # Resemble AI Chatterbox (via HF Spaces)
-                    audio_bytes = await synthesize_line_chatterbox(text)
+                    return await synthesize_line_chatterbox(text)
                 else:
-                    # Edge TTS implementation
                     print(f"DEBUG TTS -> voice: '{voice}', pitch: '{pitch}', rate: '{rate}'")
-                    audio_bytes = await synthesize_line_edge(text, voice, pitch, rate)
-                    
-                segments.append(audio_bytes)
-                break
+                    return await synthesize_line_edge(text, voice, pitch, rate)
             except Exception as e:
-                print(f"Error synthesizing line (model: {model}, voice: {voice}, pitch: {pitch}, rate: {rate}): {e}, retrying...")
-                await asyncio.sleep(1)
-                
-    return segments
+                print(f"Error on attempt {attempt+1}/3 (model: {model}, voice: {voice}): {e}, retrying...")
+                if attempt < 2:
+                    await asyncio.sleep(1)
+
+        return None  # Give up after 3 failures, skip this line
+
+    # Fire all lines concurrently — asyncio.gather preserves order
+    results = await asyncio.gather(*[synthesize_line(line) for line in script])
+
+    # Filter out None entries (empty or failed lines)
+    return [audio for audio in results if audio is not None]
+
 
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
