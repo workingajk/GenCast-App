@@ -20,6 +20,7 @@ class Podcast(models.Model):
     speaker_characteristics = models.JSONField(null=True, blank=True)
     outline = models.JSONField(null=True, blank=True)
     sources = models.JSONField(null=True, blank=True)
+    research_context = models.TextField(null=True, blank=True, help_text="Stored RAG context for script generation")
     script_content = models.JSONField(null=True, blank=True)
     audio_file = models.FileField(upload_to='podcasts/', null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning')

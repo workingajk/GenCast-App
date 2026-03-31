@@ -6,6 +6,9 @@ venv/
 .env
 db.sqlite3
 
+# Training datasets (large scraped content, generated locally)
+evaluations/*.jsonl
+
 # OS
 .DS_Store
 Thumbs.db

@@ -10,6 +10,7 @@ from .serializers import (
     ScriptUpdateSerializer
 )
 from .services import generate_plan, generate_script
+from .rag_service import generate_plan_rag, generate_script_rag
 from .tts import synthesize_podcast, concatenate_and_save
 from asgiref.sync import async_to_sync
 
@@ -51,6 +52,52 @@ class PodcastCreateView(views.APIView):
             serializer = PodcastDetailSerializer(podcast)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PodcastCreateRagView(views.APIView):
+    """
+    POST /api/podcasts/create-rag/
+    Same as PodcastCreateView but uses the Adaptive RAG pipeline
+    (Tavily retrieval + coverage check) instead of Gemini grounding.
+    Stores pipeline metadata for research comparison.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        topic = request.data.get('topic')
+        speaker_count = request.data.get('speakers', 2)
+        speaker_characteristics = request.data.get('characteristics', [])
+
+        if not topic:
+            return Response({"error": "Topic is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            start_time = time.time()
+            plan_data = generate_plan_rag(topic, speaker_count)
+            planning_latency = time.time() - start_time
+
+            podcast = Podcast.objects.create(
+                user=request.user,
+                topic=topic,
+                speaker_count=speaker_count,
+                speaker_characteristics=speaker_characteristics,
+                title=plan_data['outline'].get('title', topic),
+                outline=plan_data['outline'],
+                sources=plan_data['sources'],
+                research_context=plan_data.get('context_text', ''),
+                status='planned',
+                planning_latency=round(planning_latency, 2)
+            )
+
+            serializer = PodcastDetailSerializer(podcast)
+            response_data = serializer.data
+            # Attach RAG pipeline metadata for research inspection
+            response_data['rag_pipeline'] = plan_data.get('pipeline', {})
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             import traceback; traceback.print_exc()
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -121,12 +168,24 @@ class PodcastGenerateScriptView(views.APIView):
             
         try:
             start_time = time.time()
-            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
+            if podcast.research_context:
+                # Use RAG pipeline without Google Search
+                script_list = generate_script_rag(
+                    outline=podcast.outline, 
+                    context_text=podcast.research_context, 
+                    speaker_count=podcast.speaker_count, 
+                    speaker_characteristics=podcast.speaker_characteristics
+                )
+                result = {"script": script_list, "new_sources": []}
+            else:
+                # Use Gemini Grounding pipeline with Google Search
+                result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
+            
             podcast.scripting_latency = round(time.time() - start_time, 2)
             
             podcast.script_content = result["script"]
             
-            # Merge new sources found during script generation
+            # Merge new sources found during script generation (only applies to normal Gemini pipeline)
             existing_sources = podcast.sources or []
             existing_uris = {s.get('uri') for s in existing_sources if s.get('uri')}
             

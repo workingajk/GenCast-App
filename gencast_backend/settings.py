@@ -25,6 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-^w&wnws$h@@-ty94&qu3xa7s*462&m%hajy9!7hk2ajh^uz53#'
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
