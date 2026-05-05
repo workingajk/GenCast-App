@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Mic, Search, Users } from 'lucide-react';
+import { Mic, Search, Users, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const TopicInput = ({ onGenerate, isGenerating }) => {
     const [topic, setTopic] = useState('');
     const [speakers, setSpeakers] = useState(2);
     const [characteristics, setCharacteristics] = useState(Array(2).fill(''));
+    const [language, setLanguage] = useState('English');
 
     const handleSpeakerChange = (num) => {
         setSpeakers(num);
@@ -27,7 +28,7 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (topic.trim()) {
-            onGenerate(topic, speakers, characteristics);
+            onGenerate(topic, speakers, characteristics, language);
         }
     };
 
@@ -52,6 +53,29 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
                                 disabled={isGenerating}
                             />
                             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-1">Podcast Language</label>
+                        <div className="relative group">
+                            <select
+                                value={language}
+                                onChange={(e) => setLanguage(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-bg-main px-6 py-5 pl-14 rounded-2xl border border-slate-200 dark:border-white/5 text-text-main placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                disabled={isGenerating}
+                            >
+                                <option value="English">English</option>
+                                <option value="Malayalam">Malayalam</option>
+                                {/* <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Hindi">Hindi</option> */}
+                            </select>
+                            <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                            </div>
                         </div>
                     </div>
 

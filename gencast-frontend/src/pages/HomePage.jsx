@@ -32,14 +32,14 @@ const HomePage = () => {
     }, [navigate]);
 
     // Handlers
-    const handleGeneratePlan = async (topic, speakers, characteristics) => {
+    const handleGeneratePlan = async (topic, speakers, characteristics, language) => {
         setLoading(true);
         setError(null);
-        setConfig({ topic, speakers, characteristics });
+        setConfig({ topic, speakers, characteristics, language });
 
         try {
             // Call backend to create podcast plan
-            const data = await podcastService.create(topic, speakers, characteristics);
+            const data = await podcastService.create(topic, speakers, characteristics, language);
             setPodcastId(data.id);
             setOutline(data.outline);
             setSources(data.sources || []);

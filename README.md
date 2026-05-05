@@ -86,6 +86,7 @@ The application follows a strictly backend-driven pipeline where each stage buil
    - The backend runs `synthesize_podcast()`.
    - **Main Engine:** Edge-TTS generating asynchronous chunks natively.
    - **Fallbacks:** The backend conditionally routes speech generation to standard `gTTS` or calls a distant HuggingFace/Gradio interface (`resembleai/chatterbox`) depending on availability or models passed.
+   - **Parallel Execution:** All dialogue lines are dispatched concurrently via `asyncio.gather()`. Each line runs as an independent coroutine with its own 3-attempt retry. `asyncio.gather` guarantees results are returned in the original script order regardless of completion order, delivering a significant speedup (especially for longer scripts) vs. the prior sequential loop.
 2. **Merge Logic (`concatenate_and_save`):**
    - All synthesized byte segments are decoded using `pydub`, aligned to consistent audio parameters (sample rate, channels, bit depth), re-encoded, and saved as a single clean `.mp3` file.
 3. **Finalization:** The audio file is handed directly to Django's active storage engine (Local or AWS S3), saved as an `.mp3` object, setting `status="completed"`. The `/api/podcasts/{id}` endpoint returns the `audio_url`, matching the frontend playback client.

@@ -10,7 +10,7 @@ def get_gemini_client():
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return client
 
-def generate_plan(topic, speaker_count=2):
+def generate_plan(topic, speaker_count=2, language='English'):
     """
     Generates a podcast plan using Gemini 2.5 Flash with Google Search grounding.
     Returns { outline: {...}, sources: [...] }
@@ -26,6 +26,7 @@ def generate_plan(topic, speaker_count=2):
     Gather factual, relevant, and up-to-date information, focusing on key points 
     that would make for an engaging {speaker_count}-speaker podcast episode.
     Write a detailed summary of your findings to be used for planning the episode.
+    IMPORTANT: Write the summary ENTIRELY in {language}.
     """
     
     search_response = client.models.generate_content(
@@ -70,6 +71,7 @@ def generate_plan(topic, speaker_count=2):
     Task:
     1. Create a high-level outline for a 5-minute podcast episode based on the Research Material above.
     2. The outline should include a catchy title, a brief summary, and 4-5 key discussion points (subtopics).
+    3. The generated output (title, summary, and subtopics) MUST be written in {language}.
     
     OUTPUT FORMAT:
     Return strictly a JSON object with this structure:
@@ -107,7 +109,7 @@ def generate_plan(topic, speaker_count=2):
         "sources": unique_sources
     }
 
-def generate_script(outline, sources, speaker_count=2, speaker_characteristics=None):
+def generate_script(outline, sources, speaker_count=2, speaker_characteristics=None, language='English'):
     """
     Generates a podcast script using Gemini 2.5 Flash with structured JSON output.
     Returns list of { speaker: "Host", text: "..." }
@@ -128,19 +130,26 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
             characteristics_context += f"- {speaker_label}: {char}\n"
         characteristics_context += "\nIMPORTANT: Ensure the dialogue reflects each speaker's distinct personality, knowledge level, role, and background as defined above. Their tone and style must match these characteristics exactly.\n"
     
-    # Predefined list of high-quality verified Edge TTS Voices (en-US only to ensure compatibility)
-    available_voices_context = """
-    Available Voices for Selection:
-    - en-US-GuyNeural (Male, Adult)
-    - en-US-JennyNeural (Female, Adult)
-    - en-US-AriaNeural (Female, Adult)
-    - en-US-AnaNeural (Female, Child, young and bright)
-    - en-US-ChristopherNeural (Male, Adult)
-    - en-US-EricNeural (Male, Adult, deep or older voice)
-    - en-US-MichelleNeural (Female, Adult)
-    - en-US-RogerNeural (Male, Adult)
-    - en-US-SteffanNeural (Male, Adult)
-    """
+    # Predefined list of high-quality verified Edge TTS Voices 
+    if language.lower() == 'malayalam':
+        available_voices_context = """
+        Available Voices for Selection (Malayalam):
+        - ml-IN-MidhunNeural (Male, Adult)
+        - ml-IN-SobhanaNeural (Female, Adult)
+        """
+    else:
+        available_voices_context = """
+        Available Voices for Selection (English):
+        - en-US-GuyNeural (Male, Adult)
+        - en-US-JennyNeural (Female, Adult)
+        - en-US-AriaNeural (Female, Adult)
+        - en-US-AnaNeural (Female, Child, young and bright)
+        - en-US-ChristopherNeural (Male, Adult)
+        - en-US-EricNeural (Male, Adult, deep or older voice)
+        - en-US-MichelleNeural (Female, Adult)
+        - en-US-RogerNeural (Male, Adult)
+        - en-US-SteffanNeural (Male, Adult)
+        """
 
     prompt = f"""
     You are a professional scriptwriter.
@@ -157,6 +166,7 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     
     Task:
     Write a natural, engaging podcast script for {speaker_count} speakers.
+    The script dialogue MUST be written ENTIRELY in {language}.
     You MUST actively use the Google Search tool to find deep, specific, and up-to-date facts for each of the Key Topics before writing the dialogue about them. Ground the conversation heavily in real-world facts.
     The speakers should be labeled strictly as "Host", "Guest", "Speaker 3", etc. to match the given characteristics.
     The dialogue should flow naturally, be highly informative, and follow the provided outline.
@@ -174,8 +184,8 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     Example:
     {{
         "script": [
-            {{ "speaker": "Host", "voice": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%", "text": "Welcome to the show!" }},
-            {{ "speaker": "Guest", "voice": "en-US-AnaNeural", "pitch": "+5Hz", "rate": "+10%", "text": "Thanks for having me, I'm super excited!" }}
+            {{ "speaker": "Host", "voice": "<VALID_VOICE_FROM_LIST>", "pitch": "+0Hz", "rate": "+0%", "text": "<Dialogue in {language}>" }},
+            {{ "speaker": "Guest", "voice": "<VALID_VOICE_FROM_LIST>", "pitch": "+5Hz", "rate": "+10%", "text": "<Dialogue in {language}>" }}
         ]
     }}
     """

@@ -16,7 +16,7 @@ api.interceptors.request.use(
         if (config.url && (config.url.includes('/auth/login') || config.url.includes('/auth/register'))) {
             return config;
         }
-        
+
         const token = localStorage.getItem('accessToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -96,8 +96,8 @@ export const authService = {
 
 export const podcastService = {
     // Create a new podcast (Draft/Plan)
-    create: async (topic, speakers, characteristics = []) => {
-        const response = await api.post('/podcasts/create/', { topic, speakers, characteristics });
+    create: async (topic, speakers, characteristics = [], language = 'English') => {
+        const response = await api.post('/podcasts/create/', { topic, speakers, characteristics, language });
         return response.data;
     },
 
@@ -131,9 +131,9 @@ export const podcastService = {
         return response.data;
     },
 
-    // Generate audio via Edge TTS
-    generateAudio: async (id) => {
-        const response = await api.post(`/podcasts/${id}/generate-audio/`);
+    // Generate audio via selected TTS engine
+    generateAudio: async (id, model) => {
+        const response = await api.post(`/podcasts/${id}/generate-audio/`, { model });
         return response.data;
     },
 

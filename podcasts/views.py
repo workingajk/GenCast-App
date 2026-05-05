@@ -25,6 +25,7 @@ class PodcastCreateView(views.APIView):
         topic = request.data.get('topic')
         speaker_count = request.data.get('speakers', 2)
         speaker_characteristics = request.data.get('characteristics', [])
+        language = request.data.get('language', 'English')
         
         if not topic:
             return Response({"error": "Topic is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -32,7 +33,7 @@ class PodcastCreateView(views.APIView):
         try:
             # 1. Generate Plan (Gemini + Search)
             start_time = time.time()
-            plan_data = generate_plan(topic, speaker_count)
+            plan_data = generate_plan(topic, speaker_count, language)
             planning_latency = time.time() - start_time
             
             # 2. Create Podcast Record
@@ -44,6 +45,7 @@ class PodcastCreateView(views.APIView):
                 title=plan_data['outline'].get('title', topic),
                 outline=plan_data['outline'],
                 sources=plan_data['sources'],
+                language=language,
                 status='planned',
                 planning_latency=round(planning_latency, 2)
             )
@@ -121,7 +123,7 @@ class PodcastGenerateScriptView(views.APIView):
             
         try:
             start_time = time.time()
-            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics)
+            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics, podcast.language)
             podcast.scripting_latency = round(time.time() - start_time, 2)
             
             podcast.script_content = result["script"]
@@ -173,7 +175,14 @@ class PodcastGenerateAudioView(views.APIView):
             segments = async_to_sync(synthesize_podcast)(podcast.script_content, model)
             
             import re
-            clean_title = re.sub(r'[^\w\s-]', '', podcast.title[:20]).strip().replace(' ', '_')
+            import unicodedata
+            
+            # Remove non-alphanumeric (leaving unicode words), then convert to ASCII
+            raw_title = re.sub(r'[^\w\s-]', '', podcast.title[:20]).strip().replace(' ', '_')
+            clean_title = unicodedata.normalize('NFKD', raw_title).encode('ascii', 'ignore').decode('ascii')
+            if not clean_title:
+                clean_title = "audio"
+                
             filename = f"{podcast.id}_{clean_title}.mp3"
             # Concatenate and save to storage (local or S3)
             saved_name = concatenate_and_save(segments, filename)

@@ -10,14 +10,14 @@ class PodcastListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing podcasts"""
     class Meta:
         model = Podcast
-        fields = ['id', 'title', 'topic', 'status', 'created_at']
+        fields = ['id', 'title', 'topic', 'status', 'created_at', 'language']
 
 class PodcastDetailSerializer(serializers.ModelSerializer):
     """Full detail including outline, sources, script"""
     class Meta:
         model = Podcast
         fields = ['id', 'title', 'topic', 'speaker_count', 'speaker_characteristics', 'outline',
-                  'sources', 'script_content', 'audio_file', 'status', 'created_at']
+                  'sources', 'script_content', 'audio_file', 'status', 'created_at', 'language']
         read_only_fields = ['outline', 'sources', 'script_content', 'audio_file', 'status', 'created_at']
 
 class ScriptUpdateSerializer(serializers.Serializer):

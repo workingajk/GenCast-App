@@ -22,6 +22,7 @@ class Podcast(models.Model):
     sources = models.JSONField(null=True, blank=True)
     script_content = models.JSONField(null=True, blank=True)
     audio_file = models.FileField(upload_to='podcasts/', null=True, blank=True)
+    language = models.CharField(max_length=50, default='English')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning')
     planning_latency = models.FloatField(null=True, blank=True, help_text="Time taken for planning phase in seconds")
     scripting_latency = models.FloatField(null=True, blank=True, help_text="Time taken for script generation in seconds")
