@@ -1,5 +1,6 @@
-import React from 'react';
-import { FileText, Globe, ArrowRight, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Globe, ArrowRight, CheckCircle, Database, Cpu } from 'lucide-react';
+import { PROVIDERS_AND_MODELS } from '../constants';
 
 export const PlanningView = ({
     outline,
@@ -7,6 +8,9 @@ export const PlanningView = ({
     onConfirm,
     isGeneratingScript
 }) => {
+    const [provider, setProvider] = useState(Object.keys(PROVIDERS_AND_MODELS)[0]);
+    const [model, setModel] = useState(PROVIDERS_AND_MODELS[Object.keys(PROVIDERS_AND_MODELS)[0]][0]);
+
     return (
         <div className="max-w-6xl xl:max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 text-text-main transition-colors duration-300">
             <div className="lg:col-span-2 space-y-8">
@@ -50,8 +54,56 @@ export const PlanningView = ({
             </div>
 
             <div className="space-y-8">
+                <div className="bg-white dark:bg-bg-surface p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl-saas">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6">Script Generation Settings</h3>
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-1">AI Provider</label>
+                            <div className="relative group">
+                                <select
+                                    value={provider}
+                                    onChange={(e) => {
+                                        setProvider(e.target.value);
+                                        setModel(PROVIDERS_AND_MODELS[e.target.value][0]);
+                                    }}
+                                    className="w-full bg-slate-50 dark:bg-bg-main px-6 py-5 pl-14 rounded-2xl border border-slate-200 dark:border-white/5 text-text-main placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                    disabled={isGeneratingScript}
+                                >
+                                    {Object.keys(PROVIDERS_AND_MODELS).map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                                <Database className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-1">AI Model</label>
+                            <div className="relative group">
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-bg-main px-6 py-5 pl-14 rounded-2xl border border-slate-200 dark:border-white/5 text-text-main placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                    disabled={isGeneratingScript}
+                                >
+                                    {PROVIDERS_AND_MODELS[provider].map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
+                                <Cpu className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button
-                    onClick={onConfirm}
+                    onClick={() => onConfirm(provider, model)}
                     disabled={isGeneratingScript}
                     className="w-full py-6 bg-primary hover:bg-primary-hover disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-text-muted text-[#0a0c0e] transition-all rounded-[2rem] font-black tracking-tight text-xl shadow-glow hover:shadow-[0_15px_30px_rgba(0,240,255,0.4)] flex items-center justify-center gap-3 active:scale-[0.98]"
                 >

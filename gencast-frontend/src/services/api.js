@@ -96,8 +96,8 @@ export const authService = {
 
 export const podcastService = {
     // Create a new podcast (Draft/Plan)
-    create: async (topic, speakers, characteristics = [], language = 'English') => {
-        const response = await api.post('/podcasts/create/', { topic, speakers, characteristics, language });
+    create: async (topic, speakers, characteristics = [], language = 'English', provider, model) => {
+        const response = await api.post('/podcasts/create/', { topic, speakers, characteristics, language, provider, model });
         return response.data;
     },
 
@@ -125,9 +125,9 @@ export const podcastService = {
         return response.data;
     },
 
-    // Generate script via Gemini
-    generateScript: async (id) => {
-        const response = await api.post(`/podcasts/${id}/generate-script/`);
+    // Generate script via AI
+    generateScript: async (id, provider, model) => {
+        const response = await api.post(`/podcasts/${id}/generate-script/`, { provider, model });
         return response.data;
     },
 

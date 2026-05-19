@@ -26,6 +26,8 @@ class PodcastCreateView(views.APIView):
         speaker_count = request.data.get('speakers', 2)
         speaker_characteristics = request.data.get('characteristics', [])
         language = request.data.get('language', 'English')
+        provider = request.data.get('provider', 'Google')
+        model = request.data.get('model', 'gemini-2.5-flash-lite')
         
         if not topic:
             return Response({"error": "Topic is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -33,7 +35,7 @@ class PodcastCreateView(views.APIView):
         try:
             # 1. Generate Plan (Gemini + Search)
             start_time = time.time()
-            plan_data = generate_plan(topic, speaker_count, language)
+            plan_data = generate_plan(topic, speaker_count, language, provider, model)
             planning_latency = time.time() - start_time
             
             # 2. Create Podcast Record
@@ -121,9 +123,12 @@ class PodcastGenerateScriptView(views.APIView):
         if not podcast.outline:
             return Response({"error": "Podcast has no outline. Create one first."}, status=status.HTTP_400_BAD_REQUEST)
             
+        provider = request.data.get('provider', 'Google')
+        model = request.data.get('model', 'gemini-2.5-flash-lite')
+            
         try:
             start_time = time.time()
-            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics, podcast.language)
+            result = generate_script(podcast.outline, podcast.sources, podcast.speaker_count, podcast.speaker_characteristics, podcast.language, provider, model)
             podcast.scripting_latency = round(time.time() - start_time, 2)
             
             podcast.script_content = result["script"]

@@ -32,14 +32,14 @@ const HomePage = () => {
     }, [navigate]);
 
     // Handlers
-    const handleGeneratePlan = async (topic, speakers, characteristics, language) => {
+    const handleGeneratePlan = async (topic, speakers, characteristics, language, provider, model) => {
         setLoading(true);
         setError(null);
-        setConfig({ topic, speakers, characteristics, language });
+        setConfig({ topic, speakers, characteristics, language, provider, model });
 
         try {
             // Call backend to create podcast plan
-            const data = await podcastService.create(topic, speakers, characteristics, language);
+            const data = await podcastService.create(topic, speakers, characteristics, language, provider, model);
             setPodcastId(data.id);
             setOutline(data.outline);
             setSources(data.sources || []);
@@ -56,14 +56,14 @@ const HomePage = () => {
         }
     };
 
-    const handleGenerateScript = async () => {
+    const handleGenerateScript = async (provider, model) => {
         if (!podcastId) return;
         setLoading(true);
         setError(null);
 
         try {
             // Trigger backend script generation
-            const data = await podcastService.generateScript(podcastId);
+            const data = await podcastService.generateScript(podcastId, provider, model);
             
             // Ensure every script line has a unique ID for the editor
             let generatedScript = data.script_content || [];

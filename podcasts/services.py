@@ -3,6 +3,7 @@ from google.genai import types
 from django.conf import settings
 import json
 import re
+import requests
 
 def get_gemini_client():
     if not settings.GEMINI_API_KEY:
@@ -10,11 +11,16 @@ def get_gemini_client():
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return client
 
-def generate_plan(topic, speaker_count=2, language='English'):
+def generate_plan(topic, speaker_count=2, language='English', provider='Google', model='gemini-2.5-flash-lite'):
     """
     Generates a podcast plan using Gemini 2.5 Flash with Google Search grounding.
     Returns { outline: {...}, sources: [...] }
     """
+    if provider == 'Ollama':
+        return generate_plan_ollama(topic, speaker_count, language, model)
+    if provider != 'Google':
+        raise NotImplementedError(f"Provider '{provider}' is not supported yet. Only 'Google' and 'Ollama' are currently integrated.")
+        
     client = get_gemini_client()
     
     # Step 1: Preliminary Search
@@ -30,7 +36,7 @@ def generate_plan(topic, speaker_count=2, language='English'):
     """
     
     search_response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model=model,
         contents=search_prompt,
         config=types.GenerateContentConfig(
             tools=[{"google_search": {}}]
@@ -84,7 +90,7 @@ def generate_plan(topic, speaker_count=2, language='English'):
     """
     
     outline_response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model=model,
         contents=outline_prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json"
@@ -109,11 +115,16 @@ def generate_plan(topic, speaker_count=2, language='English'):
         "sources": unique_sources
     }
 
-def generate_script(outline, sources, speaker_count=2, speaker_characteristics=None, language='English'):
+def generate_script(outline, sources, speaker_count=2, speaker_characteristics=None, language='English', provider='Google', model='gemini-2.5-flash-lite'):
     """
     Generates a podcast script using Gemini 2.5 Flash with structured JSON output.
     Returns list of { speaker: "Host", text: "..." }
     """
+    if provider == 'Ollama':
+        return generate_script_ollama(outline, sources, speaker_count, speaker_characteristics, language, model)
+    if provider != 'Google':
+        raise NotImplementedError(f"Provider '{provider}' is not supported yet. Only 'Google' and 'Ollama' are currently integrated.")
+
     client = get_gemini_client()
     
     sources = sources or []
@@ -191,7 +202,7 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model=model,
         contents=prompt,
         config=types.GenerateContentConfig(
             tools=[{"google_search": {}}],
@@ -240,4 +251,146 @@ def generate_script(outline, sources, speaker_count=2, speaker_characteristics=N
     return {
         "script": script_data,
         "new_sources": unique_new_sources
+    }
+
+def generate_plan_ollama(topic, speaker_count, language, model):
+    outline_prompt = f"""
+    You are an expert podcast producer. 
+    Topic: "{topic}"
+    Target format: A structured podcast with {speaker_count} speakers.
+    
+    Task:
+    1. Create a high-level outline for a 5-minute podcast episode.
+    2. The outline should include a catchy title, a brief summary, and 4-5 key discussion points (subtopics).
+    3. The generated output (title, summary, and subtopics) MUST be written in {language}.
+    
+    OUTPUT FORMAT:
+    Return strictly a JSON object with this structure:
+    {{
+      "title": "Episode Title",
+      "summary": "Brief summary...",
+      "topics": ["Topic 1", "Topic 2", "Topic 3"]
+    }}
+    Do not include any markdown formatting or explanations outside the JSON.
+    """
+    
+    response = requests.post("http://localhost:11434/api/generate", json={
+        "model": model,
+        "prompt": outline_prompt,
+        "stream": False,
+        "format": "json"
+    })
+    
+    if response.status_code != 200:
+        raise ValueError(f"Ollama API Error: {response.text}")
+        
+    data = response.json()
+    text = data.get("response", "{}")
+    
+    try:
+        outline = json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r'(\{.*\})', text, re.DOTALL)
+        if match:
+            outline = json.loads(match.group(1))
+        else:
+            raise ValueError("Failed to parse Ollama response as JSON")
+            
+    return {
+        "outline": outline,
+        "sources": []
+    }
+
+def generate_script_ollama(outline, sources, speaker_count, speaker_characteristics, language, model):
+    characteristics_context = ""
+    if speaker_characteristics and isinstance(speaker_characteristics, list) and len(speaker_characteristics) > 0:
+        characteristics_context = "Speaker Characteristics:\n"
+        for i, char in enumerate(speaker_characteristics):
+            speaker_label = f"Speaker {i+1}"
+            if i == 0: speaker_label = "Host"
+            elif i == 1: speaker_label = "Guest"
+            characteristics_context += f"- {speaker_label}: {char}\n"
+        characteristics_context += "\nIMPORTANT: Ensure the dialogue reflects each speaker's distinct personality, knowledge level, role, and background as defined above.\n"
+    
+    if language.lower() == 'malayalam':
+        available_voices_context = """
+        Available Voices for Selection (Malayalam):
+        - ml-IN-MidhunNeural (Male, Adult)
+        - ml-IN-SobhanaNeural (Female, Adult)
+        """
+    else:
+        available_voices_context = """
+        Available Voices for Selection (English):
+        - en-US-GuyNeural (Male, Adult)
+        - en-US-JennyNeural (Female, Adult)
+        - en-US-AriaNeural (Female, Adult)
+        - en-US-AnaNeural (Female, Child, young and bright)
+        - en-US-ChristopherNeural (Male, Adult)
+        - en-US-EricNeural (Male, Adult, deep or older voice)
+        - en-US-MichelleNeural (Female, Adult)
+        - en-US-RogerNeural (Male, Adult)
+        - en-US-SteffanNeural (Male, Adult)
+        """
+
+    prompt = f"""
+    You are a professional scriptwriter.
+    
+    Podcast Title: {outline.get('title')}
+    Summary: {outline.get('summary')}
+    Key Topics: {', '.join(outline.get('topics', []))}
+    
+    {characteristics_context}
+    
+    {available_voices_context}
+    
+    Task:
+    Write a natural, engaging podcast script for {speaker_count} speakers based on the topics.
+    The script dialogue MUST be written ENTIRELY in {language}.
+    The speakers should be labeled strictly as "Host", "Guest", "Speaker 3", etc. to match the given characteristics.
+    The dialogue should flow naturally, be highly informative, and follow the provided outline.
+    Include approximately 10-15 dialogue turns.
+    
+    CRITICAL INSTRUCTION FOR VOICE ACTING:
+    For each line of dialogue, you MUST assign an appropriate `voice` ONLY from the "Available Voices" list above.
+    You MUST also specify `pitch` and `rate` (e.g., "+0Hz", "+0%").
+    
+    Return a valid JSON object with a "script" key containing a list of objects.
+    Example:
+    {{
+        "script": [
+            {{ "speaker": "Host", "voice": "en-US-GuyNeural", "pitch": "+0Hz", "rate": "+0%", "text": "Hello!" }}
+        ]
+    }}
+    """
+    
+    response = requests.post("http://localhost:11434/api/generate", json={
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json"
+    })
+    
+    if response.status_code != 200:
+        raise ValueError(f"Ollama API Error: {response.text}")
+        
+    data = response.json()
+    text = data.get("response", "{}")
+    
+    try:
+        result = json.loads(text)
+        if isinstance(result, list):
+            script_data = result
+        else:
+            script_data = result.get("script", [])
+    except json.JSONDecodeError:
+        match = re.search(r'(\{.*\})', text, re.DOTALL)
+        if match:
+            result = json.loads(match.group(1))
+            script_data = result if isinstance(result, list) else result.get("script", [])
+        else:
+            raise ValueError("Failed to parse generated script as JSON")
+            
+    return {
+        "script": script_data,
+        "new_sources": []
     }

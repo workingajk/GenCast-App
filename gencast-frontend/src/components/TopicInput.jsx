@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mic, Search, Users, Globe } from 'lucide-react';
+import { Mic, Search, Users, Globe, Cpu, Database } from 'lucide-react';
+import { PROVIDERS_AND_MODELS } from '../constants';
 import { clsx } from 'clsx';
 
 export const TopicInput = ({ onGenerate, isGenerating }) => {
@@ -7,7 +8,8 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
     const [speakers, setSpeakers] = useState(2);
     const [characteristics, setCharacteristics] = useState(Array(2).fill(''));
     const [language, setLanguage] = useState('English');
-
+    const [provider, setProvider] = useState(Object.keys(PROVIDERS_AND_MODELS)[0]);
+    const [model, setModel] = useState(PROVIDERS_AND_MODELS[Object.keys(PROVIDERS_AND_MODELS)[0]][0]);
     const handleSpeakerChange = (num) => {
         setSpeakers(num);
         setCharacteristics(prev => {
@@ -28,7 +30,7 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (topic.trim()) {
-            onGenerate(topic, speakers, characteristics, language);
+            onGenerate(topic, speakers, characteristics, language, provider, model);
         }
     };
 
@@ -75,6 +77,51 @@ export const TopicInput = ({ onGenerate, isGenerating }) => {
                             <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
                             <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
                                 <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-1">AI Provider</label>
+                            <div className="relative group">
+                                <select
+                                    value={provider}
+                                    onChange={(e) => {
+                                        setProvider(e.target.value);
+                                        setModel(PROVIDERS_AND_MODELS[e.target.value][0]);
+                                    }}
+                                    className="w-full bg-slate-50 dark:bg-bg-main px-6 py-5 pl-14 rounded-2xl border border-slate-200 dark:border-white/5 text-text-main placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                    disabled={isGenerating}
+                                >
+                                    {Object.keys(PROVIDERS_AND_MODELS).map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                                <Database className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-1">AI Model</label>
+                            <div className="relative group">
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-bg-main px-6 py-5 pl-14 rounded-2xl border border-slate-200 dark:border-white/5 text-text-main placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                    disabled={isGenerating}
+                                >
+                                    {PROVIDERS_AND_MODELS[provider].map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
+                                <Cpu className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={22} />
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                                </div>
                             </div>
                         </div>
                     </div>
