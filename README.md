@@ -1,6 +1,6 @@
-# GenCast - Verified Technical Specifications & Application Flow
+# GenCast - Technical Specifications & Application Flow
 
-## 1. Technical Specifications (Verified against Codebase)
+## 1. Technical Specifications 
 
 ### Tech Stack Overview
 - **Frontend**: React.js, Vite
@@ -56,7 +56,7 @@ Standard Django `AbstractUser`. No extra fields.
 
 ---
 
-## 2. Verified Application Flow & Logic
+## 2. Application Flow & Logic
 
 The application follows a strictly backend-driven pipeline where each stage builds on the previous one. The frontend acts exclusively as a dumb client, calling the Django REST API to trigger AI operations.
 
@@ -93,7 +93,7 @@ The application follows a strictly backend-driven pipeline where each stage buil
 
 ---
 
-## 3. Authentication (Verified)
+## 3. Authentication 
 
 The app uses **JWT (JSON Web Token)** authentication via `djangorestframework_simplejwt`. This is confirmed — `TokenObtainPairView` and `TokenRefreshView` are directly wired in `gencast_backend/urls.py`, and `RefreshToken.for_user()` is issued in the `RegisterView`.
 
@@ -111,7 +111,7 @@ The app uses **JWT (JSON Web Token)** authentication via `djangorestframework_si
 
 ---
 
-## 4. REST API Endpoint Reference (Verified)
+## 4. REST API Endpoint Reference 
 
 All podcast endpoints require `Authorization: Bearer <access_token>`.
 
@@ -131,7 +131,7 @@ All podcast endpoints require `Authorization: Bearer <access_token>`.
 
 ---
 
-## 5. Frontend Page Architecture (Verified)
+## 5. Frontend Page Architecture
 
 All pages live under `gencast-frontend/src/pages/` and are routed via `react-router-dom`.
 
@@ -152,7 +152,7 @@ All pages live under `gencast-frontend/src/pages/` and are routed via `react-rou
 
 ---
 
-## 6. Status State Machine (Verified)
+## 6. Status State Machine
 
 The `Podcast.status` field tracks which phase of the pipeline the podcast is currently in.
 
@@ -175,7 +175,7 @@ The `Podcast.status` field tracks which phase of the pipeline the podcast is cur
 
 ---
 
-## 7. Latency Tracking (Verified)
+## 7. Latency Tracking 
 
 Each key generation phase measures wall-clock time using `time.time()` and saves the elapsed seconds (rounded to 2 decimal places) to the `Podcast` record.
 
